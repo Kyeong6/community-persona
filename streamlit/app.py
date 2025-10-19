@@ -189,7 +189,6 @@ def main():
             with col1:
                 product_name = st.text_input(
                     "상품명 *",
-                    value="나이키 에어맥스 270",
                     placeholder="예: 나이키 에어맥스 270",
                     help="생성할 상품의 이름을 입력하세요"
                 )
@@ -197,29 +196,8 @@ def main():
             with col2:
                 price = st.text_input(
                     "가격 *",
-                    value="89,000원",
                     placeholder="예: 89,000원",
                     help="상품의 가격을 입력하세요"
-                )
-            
-            st.divider()
-            
-            # 바이럴 기간
-            st.subheader("📅 바이럴 기간")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                start_date = st.date_input(
-                    "시작일 *",
-                    value=date(2025, 1, 20),
-                    help="바이럴 캠페인 시작일을 선택하세요"
-                )
-            
-            with col2:
-                end_date = st.date_input(
-                    "종료일 *",
-                    value=date(2025, 1, 27),
-                    help="바이럴 캠페인 종료일을 선택하세요"
                 )
             
             st.divider()
@@ -253,11 +231,12 @@ def main():
             # 강조 사항
             st.subheader("⭐ 강조 사항")
             
-            emphasis_options = ['쿠폰', '이벤트', '특정 키워드', '기타']
+            emphasis_options = ['쿠폰', '이벤트', '특정 키워드', '카드 혜택', '기타']
             emphasis_placeholders = {
                 '쿠폰': '예: 신규회원 20% 할인 쿠폰, 최대 5만원까지',
                 '이벤트': '예: 첫 구매 시 추가 5,000원 할인 + 무료배송',
                 '특정 키워드': '예: 한정수량, 조기품절, 인기상품',
+                '카드 혜택': '예: 신한카드 5% 할인, 삼성카드 3만원 적립',
                 '기타': '상세 내용을 입력하세요'
             }
             
@@ -305,7 +284,7 @@ def main():
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 if st.button(
-                    "✨ 원고 생성하기 (4개)",
+                    "✨ 원고 생성하기",
                     type="primary",
                     use_container_width=True,
                     help="입력한 정보를 바탕으로 4개의 다른 톤의 원고를 생성합니다"
@@ -313,7 +292,7 @@ def main():
                     if product_name and price:
                         with st.spinner("원고를 생성하고 있습니다..."):
                             generated_contents = generate_content(
-                                product_name, price, start_date, end_date, 
+                                product_name, price, None, None, 
                                 community, emphasis_details, best_case
                             )
                             st.session_state.generated_contents = generated_contents
@@ -336,14 +315,8 @@ def main():
         st.markdown("""
         <div style="text-align: center; margin-bottom: 2rem;">
             <h2>📝 생성된 원고</h2>
-            <p style="color: #666;">{}</p>
         </div>
-        """.format(
-            f"{st.session_state.generated_contents[0]['text'].split(' ')[0]} • " + 
-            {"ppomppu": "뽐뿌", "fmkorea": "에펨코리아", "womad": "여성시대"}.get(
-                st.session_state.get('community', 'ppomppu'), '뽐뿌'
-            )
-        ), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
         # 결과 그리드
         cols = st.columns(2)
@@ -353,11 +326,7 @@ def main():
                 # 카드 컨테이너
                 with st.container():
                     # 헤더
-                    col_header1, col_header2 = st.columns([3, 1])
-                    with col_header1:
-                        st.markdown(f"**버전 {content['id']}** {content['tone']}")
-                    with col_header2:
-                        st.markdown("⭐ **베스트**")
+                    st.markdown(f"**버전 {content['id']}** {content['tone']}")
                     
                     # 원고 내용
                     st.markdown("---")
@@ -377,11 +346,6 @@ def main():
                     with col_btn2:
                         st.button(f"✏️ 수정", key=f"edit_{content['id']}")
                     
-                    # 반응도 표시
-                    st.markdown("---")
-                    reaction_rate = 70 + content['id'] * 5
-                    st.markdown(f"👍 **예상 반응도: {reaction_rate}%**")
-                    st.progress(reaction_rate / 100)
                     
                     st.markdown("")  # 간격
         
