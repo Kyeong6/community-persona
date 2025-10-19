@@ -65,6 +65,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 세션 상태 초기화
+if 'user_logged_in' not in st.session_state:
+    st.session_state.user_logged_in = False
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
+if 'team_name' not in st.session_state:
+    st.session_state.team_name = None
+if 'user_name' not in st.session_state:
+    st.session_state.user_name = None
 if 'show_results' not in st.session_state:
     st.session_state.show_results = False
 if 'generated_contents' not in st.session_state:
@@ -73,6 +81,83 @@ if 'selected_emphasis' not in st.session_state:
     st.session_state.selected_emphasis = []
 if 'emphasis_details' not in st.session_state:
     st.session_state.emphasis_details = []
+if 'content_history' not in st.session_state:
+    st.session_state.content_history = []
+
+def handle_user_login(team_name: str, user_name: str):
+    """사용자 식별 및 등록 함수"""
+    import hashlib
+    import time
+    
+    # 고유 user_id 생성 (팀명 + 사용자명 + 타임스탬프 기반)
+    timestamp = str(int(time.time()))
+    user_string = f"{team_name}_{user_name}_{timestamp}"
+    user_id = hashlib.md5(user_string.encode()).hexdigest()[:12]
+    
+    # 세션 상태 업데이트
+    st.session_state.user_id = user_id
+    st.session_state.team_name = team_name
+    st.session_state.user_name = user_name
+    st.session_state.user_logged_in = True
+    
+    return user_id
+
+def show_user_login_screen():
+    """사용자 확인 화면"""
+    st.markdown("""
+    <div class="main-header">
+        <h1>👤 사용자 확인</h1>
+        <p>팀명과 사용자명을 입력하여 서비스를 이용하세요</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown('<div class="content-card">', unsafe_allow_html=True)
+        
+        st.subheader("📝 사용자 정보")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            team_name = st.text_input(
+                "팀명 *",
+                placeholder="예: 뷰티팀, 브랜드패션팀",
+                help="소속 팀명을 입력하세요"
+            )
+        
+        with col2:
+            user_name = st.text_input(
+                "사용자명 *",
+                placeholder="홍길동, 이순신",
+                help="사용자명을 입력하세요"
+            )
+        
+        st.divider()
+        
+        # 로그인 버튼
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button(
+                "🔐 로그인",
+                type="primary",
+                use_container_width=True,
+                help="팀명과 사용자명을 입력한 후 로그인하세요"
+            ):
+                if team_name and user_name:
+                    user_id = handle_user_login(team_name, user_name)
+                    st.success(f"로그인 성공! 사용자 ID: {user_id}")
+                    st.rerun()
+                else:
+                    st.error("팀명과 사용자명을 모두 입력해주세요.")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # 하단 안내
+        st.markdown("---")
+        st.markdown(
+            "<p style='text-align: center; color: #666; font-size: 14px;'>* 팀명과 사용자명을 입력한 후 로그인하세요</p>",
+            unsafe_allow_html=True
+        )
 
 def generate_content(product_name, price, start_date, end_date, community, emphasis_details, best_case=""):
     """원고 생성 함수"""
@@ -169,6 +254,49 @@ def generate_content(product_name, price, start_date, end_date, community, empha
     return contents
 
 def main():
+    # 사용자 로그인 확인
+    if not st.session_state.user_logged_in:
+        show_user_login_screen()
+        return
+    
+    # 로그인된 사용자 정보 표시
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"""
+        <div style="background: #e8f5e8; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <strong>👤 로그인된 사용자:</strong> {st.session_state.team_name} - {st.session_state.user_name} 
+            <span style="color: #666;">(ID: {st.session_state.user_id})</span>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        if st.button("🚪 로그아웃", type="secondary", use_container_width=True):
+            # 세션 상태 초기화
+            st.session_state.user_logged_in = False
+            st.session_state.user_id = None
+            st.session_state.team_name = None
+            st.session_state.user_name = None
+            st.session_state.show_results = False
+            st.session_state.generated_contents = []
+            st.rerun()
+    
+    # 사이드바 - 콘텐츠 이력
+    with st.sidebar:
+        st.markdown("### 📚 콘텐츠 이력")
+        if st.session_state.content_history:
+            for i, entry in enumerate(reversed(st.session_state.content_history[-5:])):  # 최근 5개만 표시
+                with st.expander(f"{entry['product_name']} - {entry['timestamp'][:16]}", expanded=False):
+                    st.write(f"**팀:** {entry['team_name']}")
+                    st.write(f"**사용자:** {entry['user_name']}")
+                    st.write(f"**상품:** {entry['product_name']}")
+                    st.write(f"**가격:** {entry['price']}")
+                    st.write(f"**커뮤니티:** {entry['community']}")
+                    if st.button(f"📋 불러오기", key=f"load_{i}"):
+                        st.session_state.generated_contents = entry['generated_contents']
+                        st.session_state.show_results = True
+                        st.rerun()
+        else:
+            st.write("생성된 콘텐츠가 없습니다.")
+    
     # 헤더
     st.markdown("""
     <div class="main-header">
@@ -297,6 +425,21 @@ def main():
                             )
                             st.session_state.generated_contents = generated_contents
                             st.session_state.show_results = True
+                            
+                            # 콘텐츠 이력에 저장
+                            history_entry = {
+                                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                'user_id': st.session_state.user_id,
+                                'team_name': st.session_state.team_name,
+                                'user_name': st.session_state.user_name,
+                                'product_name': product_name,
+                                'price': price,
+                                'community': community,
+                                'emphasis_details': emphasis_details,
+                                'best_case': best_case,
+                                'generated_contents': generated_contents
+                            }
+                            st.session_state.content_history.append(history_entry)
                             st.rerun()
                     else:
                         st.error("상품명과 가격은 필수 입력 항목입니다.")
@@ -330,21 +473,106 @@ def main():
                     
                     # 원고 내용
                     st.markdown("---")
-                    st.text_area(
-                        "생성된 원고",
-                        value=content['text'],
-                        height=200,
-                        disabled=True,
-                        key=f"content_{content['id']}"
-                    )
+                    
+                    # 수정 모드 확인
+                    if st.session_state.get(f"editing_{content['id']}", False):
+                        edited_text = st.text_area(
+                            "원고 수정",
+                            value=content['text'],
+                            height=200,
+                            key=f"edit_content_{content['id']}"
+                        )
+                        
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.button("💾 저장", key=f"save_{content['id']}"):
+                                # 수정된 내용으로 업데이트
+                                for i, c in enumerate(st.session_state.generated_contents):
+                                    if c['id'] == content['id']:
+                                        st.session_state.generated_contents[i]['text'] = edited_text
+                                        break
+                                st.session_state[f"editing_{content['id']}"] = False
+                                st.success("원고가 수정되었습니다!")
+                                st.rerun()
+                        
+                        with col_cancel:
+                            if st.button("❌ 취소", key=f"cancel_{content['id']}"):
+                                st.session_state[f"editing_{content['id']}"] = False
+                                st.rerun()
+                    else:
+                        st.text_area(
+                            "생성된 원고",
+                            value=content['text'],
+                            height=200,
+                            disabled=True,
+                            key=f"content_{content['id']}"
+                        )
                     
                     # 액션 버튼
                     col_btn1, col_btn2 = st.columns(2)
                     with col_btn1:
                         if st.button(f"📋 복사", key=f"copy_{content['id']}"):
-                            st.write("원고가 복사되었습니다!")
+                            # 클립보드에 복사하는 더 안전한 방법
+                            import pyperclip
+                            import platform
+                            
+                            try:
+                                pyperclip.copy(content['text'])
+                                # 운영체제별 메시지
+                                if platform.system() == "Darwin":  # macOS
+                                    success_msg = "✅ 원고가 클립보드에 복사되었습니다! **Cmd+V**로 붙여넣기하세요."
+                                elif platform.system() == "Windows":  # Windows
+                                    success_msg = "✅ 원고가 클립보드에 복사되었습니다! **Ctrl+V**로 붙여넣기하세요."
+                                else:  # Linux, 기타
+                                    success_msg = "✅ 원고가 클립보드에 복사되었습니다! **Ctrl+V**로 붙여넣기하세요."
+                                
+                                st.success(success_msg)
+                            except:
+                                # pyperclip이 안 되면 JavaScript 방법 시도
+                                st.markdown(f"""
+                                <script>
+                                async function copyToClipboard() {{
+                                    const text = `{content['text'].replace('`', '\\`').replace('$', '\\$').replace('\\', '\\\\')}`;
+                                    
+                                    try {{
+                                        if (navigator.clipboard && window.isSecureContext) {{
+                                            await navigator.clipboard.writeText(text);
+                                            console.log('Clipboard API로 복사 성공');
+                                        }} else {{
+                                            // 대체 방법
+                                            const textArea = document.createElement('textarea');
+                                            textArea.value = text;
+                                            textArea.style.position = 'fixed';
+                                            textArea.style.opacity = '0';
+                                            document.body.appendChild(textArea);
+                                            textArea.focus();
+                                            textArea.select();
+                                            document.execCommand('copy');
+                                            document.body.removeChild(textArea);
+                                            console.log('execCommand로 복사 성공');
+                                        }}
+                                    }} catch (err) {{
+                                        console.error('복사 실패:', err);
+                                    }}
+                                }}
+                                copyToClipboard();
+                                </script>
+                                """, unsafe_allow_html=True)
+                                
+                                # 운영체제별 대체 메시지
+                                if platform.system() == "Darwin":  # macOS
+                                    fallback_msg = "✅ 복사를 시도했습니다! **Cmd+V**로 붙여넣기해보세요."
+                                elif platform.system() == "Windows":  # Windows
+                                    fallback_msg = "✅ 복사를 시도했습니다! **Ctrl+V**로 붙여넣기해보세요."
+                                else:  # Linux, 기타
+                                    fallback_msg = "✅ 복사를 시도했습니다! **Ctrl+V**로 붙여넣기해보세요."
+                                
+                                st.success(fallback_msg)
+                    
                     with col_btn2:
-                        st.button(f"✏️ 수정", key=f"edit_{content['id']}")
+                        if st.button(f"✏️ 수정", key=f"edit_{content['id']}"):
+                            st.session_state[f"editing_{content['id']}"] = True
+                            st.rerun()
                     
                     
                     st.markdown("")  # 간격
