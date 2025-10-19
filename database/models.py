@@ -15,46 +15,26 @@ class User:
     team_name: str
     user_name: str
     created_at: datetime
-    feedback: Optional[str] = None
 
 
 @dataclass
-class Generation:
-    """문구 생성 기록 모델"""
-    generate_id: str
+class UserFeedback:
+    """사용자 피드백 모델"""
+    id: str
     user_id: str
+    feeback: str
+    created_at: datetime
+
+
+@dataclass
+class Content:
+    """콘텐츠 생성 기록 모델"""
+    id: str
+    user_id: str
+    parent_generate_id: Optional[str]
+    generation_type: str
     product_info: Dict[str, Any]
     attributes: Dict[str, Any]
     generated_contents: List[Dict[str, Any]]
-    created_at: datetime
-
-
-@dataclass
-class CopyAction:
-    """복사 액션 로그 모델"""
-    action_id: str
-    user_id: str
-    generate_id: str
-    version_id: str
-    action_type: str  # 'copy', 'regenerate'
-    created_at: datetime
-
-
-@dataclass
-class Feedback:
-    """피드백 모델"""
-    feedback_id: str
-    user_id: str
-    feedback_text: str
-    created_at: datetime
-
-
-@dataclass
-class RegenerateLog:
-    """재생성 로그 모델"""
-    regenerate_id: str
-    user_id: str
-    generate_id: str
-    reason_text: str
-    new_contents: List[Dict[str, Any]]
+    reason: Optional[str]
     created_at: datetime
