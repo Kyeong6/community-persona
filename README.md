@@ -53,8 +53,9 @@ poetry run streamlit run app.py
 - **Streamlit**: 웹 애플리케이션 프레임워크
 - **Python**: 백엔드 로직
 - **Poetry**: 의존성 관리 및 패키지 관리
-- **SQLite**: 관계형 데이터베이스 (예정)
-- **ChromaDB**: 벡터 데이터베이스 (예정)
+- **SQLite**: 관계형 데이터베이스
+- **FAISS**: 벡터 데이터베이스 (메타데이터 지원)
+- **NumPy**: 수치 계산 및 벡터 처리
 - **CSS**: 커스텀 스타일링
 - **HTML**: 결과 화면 렌더링
 
