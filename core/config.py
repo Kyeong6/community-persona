@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).parent.parent
 # 데이터베이스 설정
 DATABASE_DIR = BASE_DIR / "data" / "database"
 DATABASE_PATH = DATABASE_DIR / "database.db"
-CHROMA_PATH = BASE_DIR / "data" / "chroma"
+VDB_PATH = BASE_DIR / "data" / "vdb"
 
 # 로그 설정
 LOG_PATH = BASE_DIR / "logs"
@@ -27,7 +27,7 @@ class Settings:
     # 데이터베이스 경로
     DATABASE_DIR = str(DATABASE_DIR)
     DATABASE_PATH = str(DATABASE_PATH)
-    CHROMA_PATH = str(CHROMA_PATH)
+    CHROMA_PATH = str(VDB_PATH)  # 기존 변수명 유지 (호환성)
     
     # 로그 경로
     LOG_PATH = str(LOG_PATH)
