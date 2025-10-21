@@ -88,9 +88,9 @@ system_prompt: |
     - {community_style.characteristics}
   - **전문 용어:** {community_style.professional_terms}
   - **사례:**
-    - 예시 1: {styleExample01}
-    - 예시 2: {styleExample02}
-    - 예시 3: {styleExample03}
+    - 예시 1: "빈폴 온쇼페 들어가서 최저가뜨노\n재고 다 XL까지 다 있음"
+    - 예시 2: "가을엔 아무래도 카멜색 운동화지 싶어서 찾아보다가\n에어포스 된장은 너무 많이들 신으니 좀 다른거 없으려나 싶었는데\n나이키 에어모나크 카멜색 신규컬러로 나왔길래 공유함\n쿠폰에 카드할인까지 적용하니 7만원 중반 나옴"
+    - 예시 3: "24시간 뷰티어택으로 역대급 혜택이라고함\n10%캐시적립+구매금액대별 사은품 있음\n군대에서 쓰고 잘 맞았어서 행사할때 하나 가본다"
     - 베스트 사례: {bestCase}
 
   ## 5. 최종 출력 형식 (JSON Only)
