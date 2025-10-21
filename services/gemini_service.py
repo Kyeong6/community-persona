@@ -26,15 +26,15 @@ class GenerationConfig:
 @dataclass
 class ContentRequest:
     """콘텐츠 생성 요청"""
-    product_name: str
-    category: str
+    productName: str
     price: str
-    features: str
-    target_customer: str
-    community_tone: str
-    emphasis_points: str
-    content_length: str
-    additional_requirements: str = ""
+    productAttribute: str
+    event: str
+    card: str
+    coupon: str
+    keyword: str
+    etc: str
+    bestCase: str = "베스트 케이스 예시"
 
 class GeminiLLMService:
     """Gemini API를 사용한 LLM 서비스"""
@@ -67,52 +67,50 @@ class GeminiLLMService:
         
         logger.info(f"Gemini LLM 서비스 초기화 완료 - 모델: {self.model_name}")
     
-    def generate_content(self, request: ContentRequest, prompt_template: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_content(self, formatted_prompt: str, product_name: str) -> Dict[str, Any]:
         """콘텐츠 생성"""
         try:
-            # 프롬프트 구성
-            system_prompt = prompt_template.get("system_prompt", "")
-            user_prompt = prompt_template.get("user_prompt", "")
-            
-            # 사용자 프롬프트에 변수 치환
-            formatted_user_prompt = user_prompt.format(
-                product_name=request.product_name,
-                category=request.category,
-                price=request.price,
-                features=request.features,
-                target_customer=request.target_customer,
-                community_tone=request.community_tone,
-                emphasis_points=request.emphasis_points,
-                content_length=request.content_length,
-                additional_requirements=request.additional_requirements
-            )
-            
-            # 전체 프롬프트 구성
-            full_prompt = f"{system_prompt}\n\n{formatted_user_prompt}"
-            
-            logger.info(f"콘텐츠 생성 시작 - 상품: {request.product_name}")
+            logger.info(f"콘텐츠 생성 시작 - 상품: {product_name}")
             
             # Gemini API 호출 (재시도 로직 포함)
-            response = self._call_gemini_with_retry(full_prompt)
+            response = self._call_gemini_with_retry(formatted_prompt)
             
-            # 응답 처리
-            result = {
-                "success": True,
-                "content": response.text,
-                "model": self.model_name,
-                "tokens_used": self._estimate_tokens(full_prompt + response.text),
-                "generation_time": time.time()
-            }
+            # JSON 응답 파싱 시도
+            try:
+                import json
+                parsed_content = json.loads(response.text)
+                
+                # 응답 처리
+                result = {
+                    "success": True,
+                    "content": parsed_content,
+                    "raw_content": response.text,
+                    "model": self.model_name,
+                    "tokens_used": self._estimate_tokens(formatted_prompt + response.text),
+                    "generation_time": time.time()
+                }
+                
+            except json.JSONDecodeError:
+                # JSON 파싱 실패 시 원본 텍스트 반환
+                result = {
+                    "success": True,
+                    "content": {"error": "JSON 파싱 실패", "raw": response.text},
+                    "raw_content": response.text,
+                    "model": self.model_name,
+                    "tokens_used": self._estimate_tokens(formatted_prompt + response.text),
+                    "generation_time": time.time()
+                }
             
-            logger.info(f"콘텐츠 생성 완료 - 상품: {request.product_name}")
+            logger.info(f"콘텐츠 생성 완료 - 상품: {product_name}")
             return result
             
         except Exception as e:
-            logger.error(f"콘텐츠 생성 실패 - 상품: {request.product_name}, 에러: {str(e)}")
+            logger.error(f"콘텐츠 생성 실패 - 상품: {product_name}, 에러: {str(e)}")
             return {
                 "success": False,
                 "error": str(e),
-                "content": "",
+                "content": {},
+                "raw_content": "",
                 "model": self.model_name,
                 "generation_time": time.time()
             }
