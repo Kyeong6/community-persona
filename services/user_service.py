@@ -11,7 +11,7 @@ from typing import Dict, Any
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database.crud import create_user, get_user, update_user_feedback
+from database.crud import create_user, get_user
 from database.models import User
 
 
@@ -50,15 +50,4 @@ def get_user_info(user_id: str) -> User:
     return get_user(user_id)
 
 
-def update_user_feedback_service(user_id: str, feedback_text: str) -> bool:
-    """
-    사용자 피드백 업데이트
-    
-    Args:
-        user_id: 사용자 ID
-        feedback_text: 피드백 텍스트
-        
-    Returns:
-        bool: 성공 여부
-    """
-    return update_user_feedback(user_id, feedback_text)
+# 피드백 관련 함수는 content_service.py의 user_feedback() 함수 사용

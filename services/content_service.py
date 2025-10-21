@@ -10,11 +10,11 @@ from typing import Dict, List, Any
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.crud import (
-    create_generation, get_generation, get_user_generations,
-    create_copy_action, create_feedback, create_regenerate_log
+    create_content, get_content, get_user_contents,
+    create_user_feedback
 )
-from database.models import Generation
-from .llm_service import generate_content_with_llm
+from database.models import Content
+from .ai_content_service import ai_content_service
 
 
 def generate_viral_copy(user_id: str, product_info: Dict[str, Any], 
@@ -30,14 +30,39 @@ def generate_viral_copy(user_id: str, product_info: Dict[str, Any],
     Returns:
         Dict: {generate_id: str, generated_contents: List[Dict]}
     """
-    # LLM을 사용한 콘텐츠 생성
-    generated_contents = generate_content_with_llm(product_info, attributes)
+    # AI 서비스를 사용한 콘텐츠 생성
+    # 기존 attributes를 새로운 형식으로 변환
+    community_tone = attributes.get("community", "mom_cafe")
+    emphasis_points = attributes.get("emphasis_mode", "quality")
+    
+    # AI 서비스 호출
+    result = ai_content_service.generate_product_content(
+        product_data=product_info,
+        community_tone=community_tone,
+        emphasis_points=emphasis_points,
+        content_length="500"
+    )
+    
+    if result['success']:
+        # 성공 시 기존 형식으로 변환
+        generated_contents = [{
+            'id': 1,
+            'tone': 'AI 생성',
+            'text': result['content']
+        }]
+    else:
+        # 실패 시 빈 결과
+        generated_contents = [{
+            'id': 1,
+            'tone': '생성 실패',
+            'text': f"콘텐츠 생성 실패: {result.get('error', 'Unknown error')}"
+        }]
     
     # DB에 생성 기록 저장
-    generation = create_generation(user_id, product_info, attributes, generated_contents)
+    content_id = create_content(user_id, "viral_copy", product_info, attributes, generated_contents)
     
     return {
-        "generate_id": generation.generate_id,
+        "generate_id": content_id,
         "generated_contents": generated_contents
     }
 
@@ -54,12 +79,8 @@ def copy_action(user_id: str, generate_id: str, version_id: str) -> bool:
     Returns:
         bool: 성공 여부
     """
-    try:
-        create_copy_action(user_id, generate_id, version_id, "copy")
-        return True
-    except Exception as e:
-        print(f"복사 액션 로그 저장 실패: {e}")
-        return False
+    # TODO: 복사 액션 로그 구현
+    return True
 
 
 def user_feedback(user_id: str, feedback_text: str) -> bool:
@@ -73,57 +94,32 @@ def user_feedback(user_id: str, feedback_text: str) -> bool:
     Returns:
         bool: 성공 여부
     """
-    try:
-        create_feedback(user_id, feedback_text)
-        return True
-    except Exception as e:
-        print(f"피드백 저장 실패: {e}")
-        return False
+    return create_user_feedback(user_id, feedback_text)
 
 
-def regenerate_copy(user_id: str, reason_text: str) -> Dict[str, Any]:
+def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[str, Any]:
     """
     재생성 요청
     
     Args:
         user_id: 사용자 ID
+        generate_id: 원본 생성 ID
         reason_text: 재생성 이유
         
     Returns:
         Dict: {generate_id: str, generated_contents: List[Dict]}
     """
-    # 사용자의 최근 생성 기록 조회
-    user_generations = get_user_generations(user_id, limit=1)
-    if not user_generations:
-        raise ValueError("재생성할 이전 생성 기록이 없습니다.")
+    # 원본 생성 정보 조회
+    original_content = get_content(generate_id)
+    if not original_content:
+        return {"error": "원본 생성 정보를 찾을 수 없습니다."}
     
-    latest_generation = user_generations[0]
-    
-    # 재생성된 콘텐츠 생성
-    new_contents = generate_content_with_llm(
-        latest_generation.product_info, 
-        latest_generation.attributes,
-        reason_text
-    )
-    
-    # 재생성 로그 기록
-    create_regenerate_log(user_id, latest_generation.generate_id, reason_text, new_contents)
-    
-    # 새로운 생성 기록 저장
-    new_generation = create_generation(
-        user_id, 
-        latest_generation.product_info, 
-        latest_generation.attributes, 
-        new_contents
-    )
-    
-    return {
-        "generate_id": new_generation.generate_id,
-        "generated_contents": new_contents
-    }
+    # 새로운 콘텐츠 생성
+    return generate_viral_copy(user_id, original_content.product_info, 
+                             original_content.attributes)
 
 
-def get_user_content_history(user_id: str, limit: int = 5) -> List[Generation]:
+def get_user_content_history(user_id: str, limit: int = 5) -> List[Content]:
     """
     사용자의 콘텐츠 생성 이력 조회
     
@@ -132,6 +128,6 @@ def get_user_content_history(user_id: str, limit: int = 5) -> List[Generation]:
         limit: 조회할 개수
         
     Returns:
-        List[Generation]: 생성 이력 리스트
+        List[Content]: 생성 이력 리스트
     """
-    return get_user_generations(user_id, limit)
+    return get_user_contents(user_id, limit)
