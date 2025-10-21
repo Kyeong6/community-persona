@@ -1,12 +1,8 @@
 # Database module
-from .crud import init_database
-from .connection import db
-from .models import User, UserFeedback, Content
+from .crud import create_tables
+from .connection import Database
 
 __all__ = [
-    'init_database',
-    'db', 
-    'User', 
-    'UserFeedback', 
-    'Content'
+    'create_tables',
+    'Database'
 ]

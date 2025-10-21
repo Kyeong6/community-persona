@@ -12,7 +12,6 @@ from typing import Dict, Any
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.crud import create_user, get_user
-from database.models import User
 
 
 def handle_user_login(team_name: str, user_name: str) -> str:
@@ -37,7 +36,7 @@ def handle_user_login(team_name: str, user_name: str) -> str:
     return user_id
 
 
-def get_user_info(user_id: str) -> User:
+def get_user_info(user_id: str) -> Dict[str, Any]:
     """
     사용자 정보 조회
     

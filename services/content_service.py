@@ -13,8 +13,7 @@ from database.crud import (
     create_content, get_content, get_user_contents,
     create_user_feedback
 )
-from database.models import Content
-from .ai_content_service import ai_content_service
+from .ai_service import ai_service
 
 
 def generate_viral_copy(user_id: str, product_info: Dict[str, Any], 
@@ -36,7 +35,7 @@ def generate_viral_copy(user_id: str, product_info: Dict[str, Any],
     emphasis_points = attributes.get("emphasis_mode", "quality")
     
     # AI 서비스 호출
-    result = ai_content_service.generate_product_content(
+    result = ai_service.generate_product_content(
         product_data=product_info,
         community_tone=community_tone,
         emphasis_points=emphasis_points,
@@ -119,7 +118,7 @@ def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[st
                              original_content.attributes)
 
 
-def get_user_content_history(user_id: str, limit: int = 5) -> List[Content]:
+def get_user_content_history(user_id: str, limit: int = 5) -> List[Dict[str, Any]]:
     """
     사용자의 콘텐츠 생성 이력 조회
     
@@ -128,6 +127,6 @@ def get_user_content_history(user_id: str, limit: int = 5) -> List[Content]:
         limit: 조회할 개수
         
     Returns:
-        List[Content]: 생성 이력 리스트
+        List[Dict]: 생성 이력 리스트
     """
     return get_user_contents(user_id, limit)
