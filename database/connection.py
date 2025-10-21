@@ -127,7 +127,7 @@ class DatabaseConnection:
     
     def __init__(self, db_path: str = None, vector_path: str = None):
         self.db_path = db_path or settings.DATABASE_PATH
-        self.vector_path = vector_path or settings.CHROMA_PATH
+        self.vector_path = vector_path or settings.FAISS_INDICES_DIR
         self._sqlite_conn = None
         self._vector_db = None
         

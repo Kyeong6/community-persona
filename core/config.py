@@ -5,6 +5,10 @@
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# 환경 변수 로드
+load_dotenv()
 
 # 프로젝트 루트 디렉토리
 BASE_DIR = Path(__file__).parent.parent
@@ -37,9 +41,21 @@ class Settings:
     # 프롬프트 경로
     PROMPT_BASE_PATH = str(PROMPT_BASE_PATH)
     
+    # Gemini API 설정
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
+    TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
+    TOP_P = float(os.getenv("TOP_P", "0.8"))
+    TOP_K = int(os.getenv("TOP_K", "40"))
+    
+    # 재시도 설정
+    MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
+    RETRY_DELAY = float(os.getenv("RETRY_DELAY", "1.0"))
+    
     # 기타 설정
     DEBUG = True
-    LOG_LEVEL = "INFO"
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # 전역 설정 인스턴스
 settings = Settings()
