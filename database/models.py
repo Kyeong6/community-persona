@@ -1,6 +1,6 @@
 """
 데이터베이스 모델 정의
-SQLite와 ChromaDB를 위한 데이터 구조
+SQLite를 위한 데이터 구조
 """
 
 from dataclasses import dataclass

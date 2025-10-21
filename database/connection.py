@@ -21,7 +21,7 @@ class VectorDatabase:
     """FAISS 벡터 데이터베이스 클래스"""
     
     def __init__(self, vector_path: str = None, dimension: int = 384):
-        self.vector_path = vector_path or settings.CHROMA_PATH
+        self.vector_path = vector_path or settings.FAISS_INDICES_DIR
         self.dimension = dimension
         self.index = None
         self.metadata = []

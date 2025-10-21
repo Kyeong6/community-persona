@@ -1,6 +1,6 @@
 """
 CRUD 작업 함수들
-SQLite와 ChromaDB를 위한 데이터 조작 함수
+SQLite를 위한 데이터 조작 함수
 """
 
 import uuid
