@@ -91,6 +91,12 @@ class AIService:
                 "community_style_professional_terms": prompt_template.get("community_style", {}).get("professional_terms", "")
             }
             
+            # 재생성 변수 디버깅 로그
+            if product_data.get("regenerate_reason"):
+                logger.info(f"재생성 이유: {product_data.get('regenerate_reason')}")
+                logger.info(f"이전 콘텐츠 길이: {len(product_data.get('previous_contents', ''))}")
+                logger.info(f"이전 콘텐츠 샘플: {product_data.get('previous_contents', '')[:200]}...")
+            
             # 프롬프트 변수 치환
             system_prompt = prompt_template.get("system_prompt", "")
             formatted_system_prompt = system_prompt.format(**prompt_variables)
@@ -146,6 +152,30 @@ class AIService:
                     # JSON에 예상된 키가 없으면 기본 처리
                     if not generated_contents:
                         logger.warning("JSON에 예상된 키가 없어서 기본 처리로 전환")
+                        generated_contents = [{
+                            'id': 1,
+                            'tone': 'AI 생성',
+                            'text': response.text
+                        }]
+                elif response_text.startswith('['):
+                    # 배열 형태의 JSON 응답 처리 (재생성 시 발생할 수 있음)
+                    parsed_content = json.loads(response_text)
+                    logger.info(f"배열 형태 JSON 파싱 성공: {len(parsed_content)}개 항목")  # 디버깅용 로그
+                    
+                    generated_contents = []
+                    for i, item in enumerate(parsed_content, 1):
+                        if isinstance(item, dict) and 'tone' in item and 'text' in item:
+                            generated_contents.append({
+                                'id': i,
+                                'tone': item['tone'],
+                                'text': item['text']
+                            })
+                    
+                    logger.info(f"배열에서 생성된 콘텐츠 개수: {len(generated_contents)}")  # 디버깅용 로그
+                    
+                    # 배열에 예상된 형식이 없으면 기본 처리
+                    if not generated_contents:
+                        logger.warning("배열에 예상된 형식이 없어서 기본 처리로 전환")
                         generated_contents = [{
                             'id': 1,
                             'tone': 'AI 생성',

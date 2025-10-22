@@ -18,6 +18,35 @@ def show_input_form():
     """입력 폼 표시"""
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
     
+    # 입력값 초기화/복원 로직
+    if hasattr(st.session_state, 'clear_inputs') and st.session_state.clear_inputs:
+        # 새로운 원고 생성 시 모든 입력값 초기화
+        st.session_state.clear_inputs = False
+        default_values = {}
+        default_emphasis = []
+    elif hasattr(st.session_state, 'last_input_data') and st.session_state.last_input_data:
+        # 입력 화면으로 돌아갈 때는 세션에 저장된 바로 전 입력값 복원
+        default_values = st.session_state.last_input_data.copy()
+        
+        # 강조사항 복원 로직
+        default_emphasis = []
+        emphasis_fields = ['event', 'card', 'coupon', 'keyword', 'etc']
+        emphasis_mapping = {
+            'event': '이벤트',
+            'card': '카드 혜택', 
+            'coupon': '쿠폰',
+            'keyword': '특정 키워드',
+            'etc': '기타'
+        }
+        
+        for field in emphasis_fields:
+            if default_values.get(field, '').strip():
+                default_emphasis.append(emphasis_mapping[field])
+    else:
+        # 첫 방문이거나 세션 데이터가 없는 경우
+        default_values = {}
+        default_emphasis = []
+    
     # 기본 정보
     st.subheader("📝 기본 정보")
     col1, col2 = st.columns(2)
@@ -25,6 +54,7 @@ def show_input_form():
     with col1:
         product_name = st.text_input(
             "상품명 *",
+            value=default_values.get('product_name', ''),
             placeholder="예: 나이키 에어맥스 270",
             help="생성할 상품의 이름을 입력하세요"
         )
@@ -32,6 +62,7 @@ def show_input_form():
     with col2:
         price = st.text_input(
             "가격",
+            value=default_values.get('price', ''),
             placeholder="예: 89,000원",
             help="상품의 가격을 입력하세요"
         )
@@ -39,6 +70,7 @@ def show_input_form():
     # 상품 속성 추가
     product_attribute = st.text_input(
         "상품 속성",
+        value=default_values.get('product_attribute', ''),
         placeholder="예: 방풍, 방수, 가벼움, 통기성 좋음",
         help="상품의 주요 특징이나 속성을 입력하세요"
     )
@@ -51,6 +83,7 @@ def show_input_form():
     community = st.selectbox(
         "타겟 커뮤니티 *",
         options=["mam2bebe", "ppomppu", "fmkorea"],
+        index=["mam2bebe", "ppomppu", "fmkorea"].index(default_values.get('community', 'mam2bebe')),
         format_func=lambda x: {
             "mam2bebe": "맘이베베",
             "ppomppu": "뽐뿌",
@@ -77,7 +110,7 @@ def show_input_form():
     selected_emphasis = st.multiselect(
         "강조 사항 종류 선택",
         options=emphasis_options,
-        default=[],
+        default=default_emphasis,
         help="원고에 포함할 강조사항을 선택하세요"
     )
     
@@ -88,8 +121,20 @@ def show_input_form():
         st.markdown("**상세 내용 입력:**")
         for emphasis_type in selected_emphasis:
             with st.expander(f"📌 {emphasis_type}", expanded=True):
+                # 강조사항별 기본값 설정
+                emphasis_field_mapping = {
+                    '이벤트': 'event',
+                    '카드 혜택': 'card',
+                    '쿠폰': 'coupon',
+                    '특정 키워드': 'keyword',
+                    '기타': 'etc'
+                }
+                field_name = emphasis_field_mapping.get(emphasis_type, '')
+                default_text = default_values.get(field_name, '') if field_name else ''
+                
                 emphasis_text = st.text_area(
                     f"{emphasis_type} 상세 내용",
+                    value=default_text,
                     placeholder=emphasis_placeholders[emphasis_type],
                     key=f"emphasis_{emphasis_type}",
                     height=100
@@ -106,6 +151,7 @@ def show_input_form():
         
         best_case = st.text_area(
             "베스트 사례 원고",
+            value=default_values.get('best_case', ''),
             placeholder="좋은 반응을 얻었던 원고 문구나 표현 방식을 자유롭게 입력하세요. 여러 개를 작성해도 좋습니다.",
             height=150,
             help="💡 입력하신 베스트 사례는 AI 학습에 활용되어 더 나은 원고를 생성하는 데 도움이 됩니다."
@@ -162,6 +208,21 @@ def show_input_form():
                         if result and result.get("generate_id"):
                             st.session_state.generated_contents = result["generated_contents"]
                             st.session_state.current_generate_id = result.get("generate_id", "temp_id")
+                            
+                            # 현재 입력 정보를 세션에 저장 (입력 화면으로 돌아갈 때 사용)
+                            st.session_state.last_input_data = {
+                                'product_name': product_name,
+                                'price': price,
+                                'product_attribute': product_attribute,
+                                'event': emphasis_mapping.get("이벤트", ""),
+                                'card': emphasis_mapping.get("카드 혜택", ""),
+                                'coupon': emphasis_mapping.get("쿠폰", ""),
+                                'keyword': emphasis_mapping.get("특정 키워드", ""),
+                                'etc': emphasis_mapping.get("기타", ""),
+                                'community': community,
+                                'best_case': best_case or ""
+                            }
+                            
                             st.session_state.show_results = True
                             st.success("원고 생성이 완료되었습니다! 🎉")
                             st.rerun()
@@ -178,6 +239,12 @@ def show_input_form():
     st.markdown("---")
     st.markdown("### 💬 피드백")
     
+    # 피드백 전송 성공 메시지 표시
+    if hasattr(st.session_state, 'feedback_sent') and st.session_state.feedback_sent:
+        st.success("🎉 피드백이 전송되었습니다! 감사합니다 🙏")
+        st.info("💡 여러분의 소중한 의견이 더 나은 서비스로 이어집니다!")
+        st.session_state.feedback_sent = False  # 메시지 표시 후 플래그 초기화
+    
     col1, col2 = st.columns([3, 1])
     with col1:
         feedback_text = st.text_area(
@@ -190,7 +257,9 @@ def show_input_form():
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
         if st.button("📝 피드백 전송", use_container_width=True):
+            st.write("🔍 피드백 버튼이 클릭되었습니다!")  # 디버깅용
             if feedback_text.strip():
+                st.write(f"🔍 피드백 내용: {feedback_text[:50]}...")  # 디버깅용
                 try:
                     # 실제 백엔드 피드백 서비스 호출
                     feedback_result = user_feedback(
@@ -198,8 +267,11 @@ def show_input_form():
                         feedback_text=feedback_text
                     )
                     
+                    st.write(f"🔍 피드백 결과: {feedback_result}")  # 디버깅용
+                    
                     if feedback_result:
-                        st.success("피드백이 전송되었습니다! 감사합니다 🙏")
+                        # 피드백 전송 후 입력창 초기화를 위해 세션 상태 사용
+                        st.session_state.feedback_sent = True
                         st.rerun()
                     else:
                         st.error("피드백 전송에 실패했습니다.")

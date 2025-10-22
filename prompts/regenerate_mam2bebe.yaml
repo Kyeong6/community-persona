@@ -31,6 +31,23 @@ community_style:
   core: "자녀/가족 중심의 핫딜 공유, 실사용 후기 및 착용샷, 득템의 기쁨 표현, 가격/쿠폰 적용법 강조"
   tone: "친근하고 정감 있는 구어체, 직접 써보고 좋았던 점 언급, 핫딜/득템 용어 사용, 기능 및 사이즈 정보"
 
+output_format: |
+  반드시 다음 JSON 형식으로만 응답하세요:
+  {
+    "information": {
+      "content": "정보전달형 문구 내용"
+    },
+    "review": {
+      "content": "후기형 문구 내용"
+    },
+    "humorous": {
+      "content": "유머러스한 형 문구 내용"
+    },
+    "friendly": {
+      "content": "친근한 톤 문구 내용"
+    }
+  }
+
 system_prompt: |
   ## 1. 역할 정의
   {role_definition}

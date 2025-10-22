@@ -10,6 +10,7 @@ from database.crud import (
     create_user_feedback, create_user_input
 )
 from services.ai_service import ai_service
+from utils.get_logger import logger
 
 
 # 커뮤니티 매핑 함수: 커뮤니티 표시명을 프롬프트 키로 변환
@@ -122,7 +123,12 @@ def user_feedback(user_id: str, feedback_text: str) -> bool:
     Returns:
         bool: 성공 여부
     """
-    return create_user_feedback(user_id, feedback_text)
+    try:
+        feedback_id = create_user_feedback(user_id, feedback_text)
+        return bool(feedback_id)  # feedback_id가 존재하면 True
+    except Exception as e:
+        logger.error(f"피드백 저장 실패: {str(e)}")
+        return False
 
 
 def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[str, Any]:
@@ -139,31 +145,36 @@ def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[st
     """
     import json
     
-    # 원본 생성 정보 조회
+    # 원본 생성 정보 조회 (이전 생성 또는 최초 생성)
     original_content = get_content(generate_id)
     if not original_content:
         return {"error": "원본 생성 정보를 찾을 수 없습니다."}
     
-    # 이전 문구들을 JSON 형태로 변환
-    previous_contents = json.dumps(original_content.generated_contents, ensure_ascii=False)
+    logger.info(f"재생성 시작 - generate_id: {generate_id}, reason: {reason_text}")
+    logger.info(f"원본 콘텐츠 개수: {len(original_content['generated_contents'])}")
+    
+    # 이전 문구들을 JSON 형태로 변환 (직전 생성 내용 사용)
+    previous_contents = json.dumps(original_content['generated_contents'], ensure_ascii=False)
+    logger.info(f"이전 콘텐츠 길이: {len(previous_contents)}")
     
     # 재생성용 product_data 구성
     product_data = {
-        **original_content.product_info,
+        **original_content['product_info'],
         "regenerate_reason": reason_text,
         "previous_contents": previous_contents
     }
     
     # 커뮤니티 정보 추출 및 매핑
-    community_key = original_content.attributes.get("community", "mam2bebe")
+    community_key = original_content['attributes'].get("community", "mam2bebe")
     
     # 재생성 전용 프롬프트 사용
     regenerate_community = f"regenerate_{community_key}"
+    logger.info(f"재생성 프롬프트 사용: {regenerate_community}")
     
     # AI 서비스 호출 (재생성 전용 프롬프트 사용)
     result = ai_service.generate_product_content(
         product_data=product_data,
-        community_tone=regenerate_community
+        community_key=regenerate_community
     )
     
     if result['success']:
@@ -187,7 +198,7 @@ def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[st
     
     # 새로운 콘텐츠 생성 기록 저장
     content_id = create_content(
-        input_id=original_content.input_id,
+        input_id=original_content['input_id'],
         parent_generate_id=generate_id,
         generation_type="regenerate",
         product_info=product_data,
@@ -198,7 +209,7 @@ def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[st
     
     return {
         "generate_id": content_id,
-        "input_id": original_content.input_id,
+        "input_id": original_content['input_id'],
         "generated_contents": generated_contents
     }
 
@@ -215,3 +226,5 @@ def get_user_content_history(user_id: str, limit: int = 5) -> List[Dict[str, Any
         List[Dict]: 생성 이력 리스트
     """
     return get_user_contents(user_id, limit)
+
+

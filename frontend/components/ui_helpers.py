@@ -85,12 +85,12 @@ def create_content_cards(contents: list, session_state: dict):
                         "원고 수정",
                         value=content['text'],
                         height=200,
-                        key=f"edit_content_{content['id']}"
+                        key=f"edit_content_{session_state.get('current_generate_id', 'default')}_{content['id']}"
                     )
                     
                     col_save, col_cancel = st.columns(2)
                     with col_save:
-                        if st.button("💾 저장", key=f"save_{content['id']}"):
+                        if st.button("💾 저장", key=f"save_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                             # 수정된 내용으로 업데이트
                             for j, c in enumerate(session_state['generated_contents']):
                                 if c['id'] == content['id']:
@@ -101,7 +101,7 @@ def create_content_cards(contents: list, session_state: dict):
                             st.rerun()
                     
                     with col_cancel:
-                        if st.button("❌ 취소", key=f"cancel_{content['id']}"):
+                        if st.button("❌ 취소", key=f"cancel_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                             session_state[f"editing_{content['id']}"] = False
                             st.rerun()
                 else:
@@ -110,13 +110,13 @@ def create_content_cards(contents: list, session_state: dict):
                         value=content['text'],
                         height=200,
                         disabled=True,
-                        key=f"content_{content['id']}"
+                        key=f"content_{session_state.get('current_generate_id', 'default')}_{content['id']}"
                     )
                 
                 # 액션 버튼
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
-                    if st.button(f"📋 복사", key=f"copy_{content['id']}"):
+                    if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
                             # 복사 액션 로그 기록
@@ -127,7 +127,7 @@ def create_content_cards(contents: list, session_state: dict):
                             )
                 
                 with col_btn2:
-                    if st.button(f"✏️ 수정", key=f"edit_{content['id']}"):
+                    if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                         session_state[f"editing_{content['id']}"] = True
                         st.rerun()
                 
