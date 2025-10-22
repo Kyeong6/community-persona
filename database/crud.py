@@ -297,3 +297,33 @@ def get_user_contents(user_id: str, limit: int = 10):
     
     # 사용자 콘텐츠 없으면 빈 리스트 반환
     return []
+
+# 콘텐츠 수정
+def update_content_text(content_id: str, version_id: int, new_text: str):
+    """특정 콘텐츠의 특정 버전 텍스트를 수정"""
+    db = Database()
+    db.connect()
+    
+    # 기존 콘텐츠 조회
+    content = get_content(content_id)
+    if not content:
+        db.close()
+        return False
+    
+    # generated_contents 업데이트
+    generated_contents = content['generated_contents']
+    for content_item in generated_contents:
+        if content_item['id'] == version_id:
+            content_item['text'] = new_text
+            break
+    
+    # 데이터베이스 업데이트
+    db.execute("""
+        UPDATE contents 
+        SET generated_contents = ?
+        WHERE id = ?
+    """, (json.dumps(generated_contents, ensure_ascii=False), content_id))
+    
+    db.commit()
+    db.close()
+    return True

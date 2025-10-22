@@ -3,6 +3,7 @@ import pyperclip
 import platform
 
 from services import copy_action, get_user_content_history
+from database.crud import update_content_text
 
 # 성공 메시지 표시
 def show_success_message(message: str):
@@ -73,14 +74,24 @@ def create_content_cards(contents: list, session_state: dict):
                     col_save, col_cancel = st.columns(2)
                     with col_save:
                         if st.button("💾 저장", key=f"save_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
-                            # 수정된 내용으로 업데이트
-                            for j, c in enumerate(session_state['generated_contents']):
-                                if c['id'] == content['id']:
-                                    session_state['generated_contents'][j]['text'] = edited_text
-                                    break
-                            session_state[f"editing_{content['id']}"] = False
-                            st.success("원고가 수정되었습니다!")
-                            st.rerun()
+                            # 데이터베이스 업데이트
+                            success = update_content_text(
+                                session_state.get('current_generate_id', ''),
+                                content['id'],
+                                edited_text
+                            )
+                            
+                            if success:
+                                # 세션 상태도 업데이트
+                                for j, c in enumerate(session_state['generated_contents']):
+                                    if c['id'] == content['id']:
+                                        session_state['generated_contents'][j]['text'] = edited_text
+                                        break
+                                session_state[f"editing_{content['id']}"] = False
+                                st.success("원고가 수정되었습니다!")
+                                st.rerun()
+                            else:
+                                st.error("수정 중 오류가 발생했습니다.")
                     
                     with col_cancel:
                         if st.button("❌ 취소", key=f"cancel_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
