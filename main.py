@@ -15,7 +15,7 @@ from frontend import (
 
 # 페이지 설정
 st.set_page_config(
-    page_title="커뮤니티 바이럴 콘텐츠 생성 시스템",
+    page_title="Community Viral Content Generator",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -94,8 +94,6 @@ if 'emphasis_details' not in st.session_state:
 if 'content_history' not in st.session_state:
     st.session_state.content_history = []
 
-# 사용자 로그인은 frontend/pages/login.py에서 직접 백엔드 서비스를 호출하므로 제거
-
 def main():
     # 사용자 로그인 확인
     if not st.session_state.user_logged_in:
@@ -112,7 +110,7 @@ def main():
     st.markdown("""
     <div class="main-header">
         <h1>✨ 커뮤니티 바이럴 콘텐츠 생성 시스템</h1>
-        <p>상품 정보를 입력하고 커뮤니티에 맞는 원고를 자동으로 생성하세요</p>
+        <p>상품 정보를 입력하고 커뮤니티에 맞는 원고를 자동으로 생성하세요!</p>
     </div>
     """, unsafe_allow_html=True)
     

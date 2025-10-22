@@ -4,60 +4,51 @@ import platform
 
 from services import copy_action, get_user_content_history
 
-
+# 성공 메시지 표시
 def show_success_message(message: str):
-    """성공 메시지 표시"""
     st.success(message)
 
-
+# 에러 메시지 표시
 def show_error_message(message: str):
-    """에러 메시지 표시"""
     st.error(message)
 
-
+# 정보 메시지 표시
 def show_info_message(message: str):
-    """정보 메시지 표시"""
     st.info(message)
 
-
+# 클립보드에 텍스트 복사
 def copy_to_clipboard(text: str) -> bool:
-    """클립보드에 텍스트 복사"""
     try:
         pyperclip.copy(text)
         return True
     except Exception:
         return False
 
-
+# 운영체제별 복사 메시지 반환
 def get_platform_copy_message() -> str:
-    """운영체제별 복사 메시지 반환"""
     if platform.system() == "Darwin":  # macOS
-        return "✅ 원고가 클립보드에 복사되었습니다! **Cmd+V**로 붙여넣기하세요."
+        return "✅ 원고가 클립보드에 복사되었습니다! \n**Cmd+V**로 붙여넣기하세요."
     elif platform.system() == "Windows":  # Windows
-        return "✅ 원고가 클립보드에 복사되었습니다! **Ctrl+V**로 붙여넣기하세요."
+        return "✅ 원고가 클립보드에 복사되었습니다! \n**Ctrl+V**로 붙여넣기하세요."
     else:  # Linux, 기타
-        return "✅ 원고가 클립보드에 복사되었습니다! **Ctrl+V**로 붙여넣기하세요."
+        return "✅ 원고가 클립보드에 복사되었습니다! \n**Ctrl+V**로 붙여넣기하세요."
 
-
+# 복사 성공 메시지 표시
 def show_copy_success_message():
-    """복사 성공 메시지 표시"""
     st.success(get_platform_copy_message())
 
-
+# 상품 정보 포맷팅
 def format_product_info(product_info: dict) -> str:
-    """상품 정보 포맷팅"""
     return f"상품: {product_info.get('product_name', '')} | 가격: {product_info.get('price', '')}"
 
-
+# 속성 정보 포맷팅
 def format_attributes(attributes: dict) -> str:
-    """속성 정보 포맷팅"""
     community = attributes.get('community', '')
     category = attributes.get('category', '')
     return f"커뮤니티: {community} | 카테고리: {category}"
 
-
+# 콘텐츠 카드 생성
 def create_content_cards(contents: list, session_state: dict):
-    """콘텐츠 카드 생성"""
     cols = st.columns(2)
     
     for i, content in enumerate(contents):

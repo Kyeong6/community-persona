@@ -45,7 +45,7 @@ def show_results_screen():
         
         regenerate_reason = st.text_area(
             "어떤 부분을 개선하고 싶으신가요?",
-            placeholder="예: 톤이 너무 딱딱해요, 더 자연스러운 표현이 필요해요, 특정 키워드가 더 강조되었으면 좋겠어요",
+            placeholder="요구사항을 구체적으로 입력해주시면 더 나은 문구를 생성해드릴게요!",
             height=100,
             help="재생성 이유를 구체적으로 입력해주세요"
         )
@@ -100,10 +100,10 @@ def show_results_screen():
     col1, col2 = st.columns([3, 1])
     with col1:
         feedback_text = st.text_area(
-            "생성된 문구에 대한 피드백을 남겨주세요",
-            placeholder="예: 톤이 너무 딱딱해요, 더 자연스러운 표현이 필요해요, 특정 키워드가 더 강조되었으면 좋겠어요",
+            "생성된 문구에 대한 피드백을 남겨주세요!",
+            placeholder="예: 더 다양한 톤의 문구가 필요해요, 특정 키워드 강조 기능이 있었으면 좋겠어요",
             height=100,
-            help="여러분의 피드백이 더 나은 문구 생성에 도움이 됩니다"
+            help="여러분의 소중한 의견이 더 나은 서비스로 이어집니다😄"
         )
     
     with col2:
