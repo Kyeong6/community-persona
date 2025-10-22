@@ -100,13 +100,10 @@ if 'content_history' not in st.session_state:
 
 def handle_user_login(team_name: str, user_name: str):
     """사용자 식별 및 등록 함수"""
-    import hashlib
-    import time
+    from services import handle_user_login as backend_login
     
-    # 고유 user_id 생성 (팀명 + 사용자명 + 타임스탬프 기반)
-    timestamp = str(int(time.time()))
-    user_string = f"{team_name}_{user_name}_{timestamp}"
-    user_id = hashlib.md5(user_string.encode()).hexdigest()[:12]
+    # 백엔드 서비스 사용
+    user_id = backend_login(team_name, user_name)
     
     # 세션 상태 업데이트
     st.session_state.user_id = user_id
