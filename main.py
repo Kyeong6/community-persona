@@ -1,10 +1,7 @@
-import random
 import streamlit as st
-import pandas as pd
-from datetime import datetime, date
+from database import create_tables
 
 # 데이터베이스 초기화
-from database import create_tables
 create_tables()
 
 # Frontend 모듈 import

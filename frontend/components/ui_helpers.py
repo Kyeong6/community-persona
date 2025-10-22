@@ -110,11 +110,12 @@ def create_content_cards(contents: list, session_state: dict):
                     if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
-                            # 복사 액션 로그 기록
+                            # 복사 액션 로그 기록 (톤 정보 포함)
                             copy_action(
                                 session_state['user_id'],
                                 session_state['current_generate_id'],
-                                str(content['id'])
+                                str(content['id']),
+                                tone=content.get('tone', 'Unknown')
                             )
                 
                 with col_btn2:

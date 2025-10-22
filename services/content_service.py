@@ -32,7 +32,7 @@ def get_community_display_name(community_key: str) -> str:
 
 # 문구 생성 요청 함수
 def generate_viral_copy(user_id: str, product_data: Dict[str, Any]) -> Dict[str, Any]:
-
+    
     # 1. 사용자 입력 정보 저장
     input_id = create_user_input(
         user_id=user_id,
@@ -49,18 +49,18 @@ def generate_viral_copy(user_id: str, product_data: Dict[str, Any]) -> Dict[str,
     )
     
     # 2. AI 서비스를 사용한 콘텐츠 생성
-    community_display = product_data.get("community", "맘이베베")
-    community_key = get_community_key(community_display)
+    community_key = product_data.get("community", "mam2bebe")
+    
     
     # AI 서비스 호출
     result = ai_service.generate_product_content(
         product_data=product_data,
         community_key=community_key,
-        content_length="500"
+        content_length="500",
+        user_id=user_id
     )
     
     if result['success']:
-        # 성공 시 AI 서비스에서 반환된 generated_contents 사용
         generated_contents = result.get('generated_contents', [{
             'id': 1,
             'tone': 'AI 생성',
@@ -73,6 +73,8 @@ def generate_viral_copy(user_id: str, product_data: Dict[str, Any]) -> Dict[str,
             'tone': '생성 실패',
             'text': f"콘텐츠 생성 실패: {result.get('error', 'Unknown error')}"
         }]
+        # 콘텐츠 생성 실패 추적 로그
+        logger.error(f"[generate_viral_copy] Content generation failed: user_id={user_id}, error={result.get('error', 'Unknown error')}")
     
     # 3. 콘텐츠 생성 기록 저장 (input_id 사용)
     content_id = create_content(
@@ -84,108 +86,70 @@ def generate_viral_copy(user_id: str, product_data: Dict[str, Any]) -> Dict[str,
         generated_contents=generated_contents
     )
     
+    # 콘텐츠 생성 성공 추적 로그 (content_id 생성 후)
+    if result['success']:
+        logger.info(f"[generate_viral_copy] Content generation successful: user_id={user_id}, content_id={content_id}")
+    
     return {
         "generate_id": content_id,
         "input_id": input_id,
         "generated_contents": generated_contents
     }
 
-
-def copy_action(user_id: str, generate_id: str, version_id: str) -> bool:
-    """
-    결과물 채택 기록 (복사 버튼 클릭 시 호출)
-    
-    Args:
-        user_id: 사용자 ID
-        generate_id: 생성 ID
-        version_id: 버전 ID
-        
-    Returns:
-        bool: 성공 여부
-    """
-    # TODO: 복사 액션 로그 구현
+# 결과물 채택 기록 (복사 버튼 클릭 시 호출)
+def copy_action(user_id: str, generate_id: str, version_id: str, tone: str = None) -> bool:
+    # 톤 선택 추적 로그 (분석용)
+    logger.info(f"[copy_action] TONE_SELECTED: user_id={user_id}, generate_id={generate_id}, version_id={version_id}, tone={tone}")
     return True
 
-
+# 피드백 수집
 def user_feedback(user_id: str, feedback_text: str) -> bool:
-    """
-    피드백 수집
-    
-    Args:
-        user_id: 사용자 ID
-        feedback_text: 피드백 텍스트
-        
-    Returns:
-        bool: 성공 여부
-    """
     try:
         feedback_id = create_user_feedback(user_id, feedback_text)
-        return bool(feedback_id)  # feedback_id가 존재하면 True
+        logger.info(f"[user_feedback] Feedback submitted: user_id={user_id}")
+        return bool(feedback_id)
     except Exception as e:
-        logger.error(f"피드백 저장 실패: {str(e)}")
+        logger.error(f"[user_feedback] Error submitting feedback: user_id={user_id}, error={str(e)}")
         return False
 
-
+# 재생성 요청
 def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[str, Any]:
-    """
-    재생성 요청
-    
-    Args:
-        user_id: 사용자 ID
-        generate_id: 원본 생성 ID
-        reason_text: 재생성 이유
-        
-    Returns:
-        Dict: {generate_id: str, generated_contents: List[Dict]}
-    """
-    import json
-    
     # 원본 생성 정보 조회 (이전 생성 또는 최초 생성)
     original_content = get_content(generate_id)
     if not original_content:
-        return {"error": "원본 생성 정보를 찾을 수 없습니다."}
-    
-    logger.info(f"재생성 시작 - generate_id: {generate_id}, reason: {reason_text}")
-    logger.info(f"원본 콘텐츠 개수: {len(original_content['generated_contents'])}")
-    
-    # 이전 문구들을 JSON 형태로 변환 (직전 생성 내용 사용)
-    previous_contents = json.dumps(original_content['generated_contents'], ensure_ascii=False)
-    logger.info(f"이전 콘텐츠 길이: {len(previous_contents)}")
+        return {"error": "Original content not found"}
     
     # 재생성용 product_data 구성
     product_data = {
         **original_content['product_info'],
         "regenerate_reason": reason_text,
-        "previous_contents": previous_contents
+        "previous_contents": original_content['generated_contents']
     }
     
     # 커뮤니티 정보 추출 및 매핑
     community_key = original_content['attributes'].get("community", "mam2bebe")
     
-    # 재생성 전용 프롬프트 사용
     regenerate_community = f"regenerate_{community_key}"
-    logger.info(f"재생성 프롬프트 사용: {regenerate_community}")
     
-    # AI 서비스 호출 (재생성 전용 프롬프트 사용)
     result = ai_service.generate_product_content(
         product_data=product_data,
-        community_key=regenerate_community
+        community_key=regenerate_community,
+        user_id=user_id
     )
     
     if result['success']:
-        # 성공 시 AI 서비스에서 반환된 generated_contents 사용
         generated_contents = result.get('generated_contents', [{
             'id': 1,
             'tone': 'AI 재생성',
             'text': result['content']
         }])
     else:
-        # 실패 시 빈 결과
         generated_contents = [{
             'id': 1,
             'tone': '재생성 실패',
             'text': f"재생성 실패: {result.get('error', 'Unknown error')}"
         }]
+        logger.error(f"[regenerate_copy] Regeneration failed: user_id={user_id}, error={result.get('error', 'Unknown error')}")
     
     # 재생성된 콘텐츠에 이유 추가
     for content in generated_contents:
@@ -202,24 +166,18 @@ def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[st
         reason=reason_text
     )
     
+    # 재생성 성공 추적 로그 (content_id 생성 후)
+    if result['success']:
+        logger.info(f"[regenerate_copy] Regeneration successful: user_id={user_id}, new_content_id={content_id}")
+    
     return {
         "generate_id": content_id,
         "input_id": original_content['input_id'],
         "generated_contents": generated_contents
     }
 
-
+# 사용자의 콘텐츠 생성 이력 조회
 def get_user_content_history(user_id: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """
-    사용자의 콘텐츠 생성 이력 조회
-    
-    Args:
-        user_id: 사용자 ID
-        limit: 조회할 개수
-        
-    Returns:
-        List[Dict]: 생성 이력 리스트
-    """
     return get_user_contents(user_id, limit)
 
 
