@@ -8,6 +8,10 @@ from datetime import datetime, date
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# 데이터베이스 초기화
+from database import create_tables
+create_tables()
+
 # Frontend 모듈 import
 from frontend import (
     show_user_login_screen, 
@@ -98,114 +102,7 @@ if 'emphasis_details' not in st.session_state:
 if 'content_history' not in st.session_state:
     st.session_state.content_history = []
 
-def handle_user_login(team_name: str, user_name: str):
-    """사용자 식별 및 등록 함수"""
-    from services import handle_user_login as backend_login
-    
-    # 백엔드 서비스 사용
-    user_id = backend_login(team_name, user_name)
-    
-    # 세션 상태 업데이트
-    st.session_state.user_id = user_id
-    st.session_state.team_name = team_name
-    st.session_state.user_name = user_name
-    st.session_state.user_logged_in = True
-    
-    return user_id
-
-def generate_content(product_name, price, start_date, end_date, community, emphasis_details, best_case=""):
-    """원고 생성 함수 (임시 - 하드코딩된 예시)"""
-    
-    # 커뮤니티별 톤 조정
-    community_tones = {
-        'ppomppu': ['친근한 톤', '정보 전달형', '후기형', '유머러스한 톤'],
-        'fmkorea': ['정보 전달형', '후기형', '친근한 톤', '유머러스한 톤'],
-        'womad': ['후기형', '친근한 톤', '정보 전달형', '유머러스한 톤']
-    }
-    
-    tones = community_tones.get(community, ['친근한 톤', '정보 전달형', '후기형', '유머러스한 톤'])
-    
-    # 강조사항 텍스트 생성
-    emphasis_text = '\n'.join([f"• {detail}" for detail in emphasis_details]) if emphasis_details else ""
-    
-    # 날짜 포맷팅
-    start_str = start_date.strftime('%m월 %d일') if start_date else ""
-    end_str = end_date.strftime('%m월 %d일') if end_date else ""
-    
-    # 커뮤니티명 변환
-    community_names = {
-        'ppomppu': '뽐뿌',
-        'fmkorea': '에펨코리아', 
-        'womad': '여성시대'
-    }
-    community_name = community_names.get(community, community)
-    
-    # 각 톤별 원고 생성
-    contents = []
-    
-    # 1. 친근한 톤
-    contents.append({
-        'id': 1,
-        'tone': '친근한 톤',
-        'text': f"""{product_name} 이거 진짜 대박이에요 ㄷㄷ
-
-작년에 {price}에 샀는데 지금 보니까 또 세일하네요.
-이 가격에 이 퀄리티면 가성비 ㅇㅈ?
-
-{emphasis_text}
-
-놓치면 후회할 듯... 저는 재구매 각입니다 👍"""
-    })
-    
-    # 2. 정보 전달형
-    contents.append({
-        'id': 2,
-        'tone': '정보 전달형',
-        'text': f"""{product_name} 특가 정보 공유합니다.
-
-가격: {price}
-기간: {start_str} ~ {end_str}
-
-{emphasis_text}
-
-비교해보니 역대급 가격인 것 같아서 올립니다.
-필요하신 분들 참고하세요!"""
-    })
-    
-    # 3. 후기형
-    contents.append({
-        'id': 3,
-        'tone': '후기형',
-        'text': f"""{product_name} 쓴지 3개월 됐는데 후기 남깁니다.
-
-솔직히 처음엔 {price} 주고 사기 좀 망설였는데
-지금은 완전 만족 중이에요 ㅎㅎ
-
-{emphasis_text}
-
-지금 또 세일한다길래 주변에 추천하려고 글 올려요.
-고민하시는 분들한테는 강추!"""
-    })
-    
-    # 4. 유머러스한 톤
-    contents.append({
-        'id': 4,
-        'tone': '유머러스한 톤',
-        'text': f"""{product_name} {price}이라니...
-
-(이거 사야되나 말아야되나 고민중)
-
-{emphasis_text}
-
-지갑: 안돼...😭
-나: 어차피 살 거 지금 사는 게 이득 아니야?
-지갑: ...💸
-
-결국 또 질렀습니다 여러분 ㅋㅋㅋ
-같이 망하실 분? 🙋‍♀️"""
-    })
-    
-    return contents
+# 사용자 로그인은 frontend/pages/login.py에서 직접 백엔드 서비스를 호출하므로 제거
 
 def main():
     # 사용자 로그인 확인

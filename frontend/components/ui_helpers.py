@@ -11,7 +11,7 @@ import os
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# from services import copy_action, get_user_content_history  # 임시 주석처리
+from services import copy_action, get_user_content_history
 
 
 def show_success_message(message: str):
@@ -119,12 +119,12 @@ def create_content_cards(contents: list, session_state: dict):
                     if st.button(f"📋 복사", key=f"copy_{content['id']}"):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
-                            # 복사 액션 로그 기록 (임시 주석처리)
-                            # copy_action(
-                            #     session_state['user_id'],
-                            #     session_state['current_generate_id'],
-                            #     str(content['id'])
-                            # )
+                            # 복사 액션 로그 기록
+                            copy_action(
+                                session_state['user_id'],
+                                session_state['current_generate_id'],
+                                str(content['id'])
+                            )
                 
                 with col_btn2:
                     if st.button(f"✏️ 수정", key=f"edit_{content['id']}"):
@@ -153,23 +153,22 @@ def show_user_info(team_name: str, user_name: str, user_id: str):
 
 
 def show_content_history(user_id: str):
-    """콘텐츠 이력 표시 (임시 주석처리)"""
+    """콘텐츠 이력 표시"""
     with st.sidebar:
         st.markdown("### 📚 콘텐츠 이력")
-        st.write("콘텐츠 이력 기능은 데이터베이스 설정 후 활성화됩니다.")
-        # try:
-        #     user_generations = get_user_content_history(user_id, limit=5)
-        #     if user_generations:
-        #         for i, generation in enumerate(user_generations):
-        #             with st.expander(f"{generation.product_info.get('product_name', '상품명')} - {generation.created_at[:16]}", expanded=False):
-        #                 st.write(f"**상품:** {generation.product_info.get('product_name', '')}")
-        #                 st.write(f"**가격:** {generation.product_info.get('price', '')}")
-        #                 st.write(f"**커뮤니티:** {generation.attributes.get('community', '')}")
-        #                 if st.button(f"📋 불러오기", key=f"load_{i}"):
-        #                     st.session_state.generated_contents = generation.generated_contents
-        #                     st.session_state.show_results = True
-        #                     st.rerun()
-        #     else:
-        #         st.write("생성된 콘텐츠가 없습니다.")
-        # except Exception as e:
-        #     st.write("콘텐츠 이력을 불러올 수 없습니다.")
+        try:
+            user_generations = get_user_content_history(user_id, limit=5)
+            if user_generations:
+                for i, generation in enumerate(user_generations):
+                    with st.expander(f"{generation.product_info.get('product_name', '상품명')} - {generation.created_at[:16]}", expanded=False):
+                        st.write(f"**상품:** {generation.product_info.get('product_name', '')}")
+                        st.write(f"**가격:** {generation.product_info.get('price', '')}")
+                        st.write(f"**커뮤니티:** {generation.attributes.get('community', '')}")
+                        if st.button(f"📋 불러오기", key=f"load_{i}"):
+                            st.session_state.generated_contents = generation.generated_contents
+                            st.session_state.show_results = True
+                            st.rerun()
+            else:
+                st.write("생성된 콘텐츠가 없습니다.")
+        except Exception as e:
+            st.write("콘텐츠 이력을 불러올 수 없습니다.")

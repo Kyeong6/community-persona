@@ -1,9 +1,5 @@
-"""
-콘텐츠 관련 서비스
-"""
-
-import sys
 import os
+import sys
 from typing import Dict, List, Any
 
 # 프로젝트 루트를 Python 경로에 추가
@@ -11,44 +7,69 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.crud import (
     create_content, get_content, get_user_contents,
-    create_user_feedback
+    create_user_feedback, create_user_input
 )
-from .ai_service import ai_service
+from services.ai_service import ai_service
 
 
-def generate_viral_copy(user_id: str, product_info: Dict[str, Any], 
-                       attributes: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    문구 생성 요청
+# 커뮤니티 매핑 함수: 커뮤니티 표시명을 프롬프트 키로 변환
+def get_community_key(community_display_name: str) -> str:
+
+    community_mapping = {
+        "맘이베베": "mam2bebe",
+        "뽐뿌": "ppomppu", 
+        "에펨코리아": "fmkorea",    
+    }
+
+    return community_mapping.get(community_display_name, "mam2bebe")
+
+
+# 커뮤니티 매핑 함수: 프롬프트 키를 커뮤니티 표시명으로 변환
+def get_community_display_name(community_key: str) -> str:
+    display_mapping = {
+        "mam2bebe": "맘이베베",
+        "ppomppu": "뽐뿌",
+        "fmkorea": "에펨코리아"
+    }
+    return display_mapping.get(community_key, "맘이베베")
+
+
+# 문구 생성 요청 함수
+def generate_viral_copy(user_id: str, product_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    # 1. 사용자 입력 정보 저장
+    input_id = create_user_input(
+        user_id=user_id,
+        product_name=product_data.get("product_name", ""),
+        price=product_data.get("price"),
+        product_attribute=product_data.get("product_attribute"),
+        event=product_data.get("event"),
+        card=product_data.get("card"),
+        coupon=product_data.get("coupon"),
+        keyword=product_data.get("keyword"),
+        etc=product_data.get("etc"),
+        community=product_data.get("community", ""),
+        best_case=product_data.get("best_case")
+    )
     
-    Args:
-        user_id: 사용자 ID
-        product_info: 상품 정보 {product_name: str, price: int}
-        attributes: 속성 정보 {community: str, category: str, emphasis_mode: str, emphasis_detail: str, best_case: str}
-        
-    Returns:
-        Dict: {generate_id: str, generated_contents: List[Dict]}
-    """
-    # AI 서비스를 사용한 콘텐츠 생성
-    # 기존 attributes를 새로운 형식으로 변환
-    community_tone = attributes.get("community", "mom_cafe")
-    emphasis_points = attributes.get("emphasis_mode", "quality")
+    # 2. AI 서비스를 사용한 콘텐츠 생성
+    community_display = product_data.get("community", "맘이베베")
+    community_key = get_community_key(community_display)
     
     # AI 서비스 호출
     result = ai_service.generate_product_content(
-        product_data=product_info,
-        community_tone=community_tone,
-        emphasis_points=emphasis_points,
+        product_data=product_data,
+        community_key=community_key,
         content_length="500"
     )
     
     if result['success']:
-        # 성공 시 기존 형식으로 변환
-        generated_contents = [{
+        # 성공 시 AI 서비스에서 반환된 generated_contents 사용
+        generated_contents = result.get('generated_contents', [{
             'id': 1,
             'tone': 'AI 생성',
             'text': result['content']
-        }]
+        }])
     else:
         # 실패 시 빈 결과
         generated_contents = [{
@@ -57,11 +78,19 @@ def generate_viral_copy(user_id: str, product_info: Dict[str, Any],
             'text': f"콘텐츠 생성 실패: {result.get('error', 'Unknown error')}"
         }]
     
-    # DB에 생성 기록 저장
-    content_id = create_content(user_id, "viral_copy", product_info, attributes, generated_contents)
+    # 3. 콘텐츠 생성 기록 저장 (input_id 사용)
+    content_id = create_content(
+        input_id=input_id,
+        parent_generate_id=None,
+        generation_type="viral_copy",
+        product_info=product_data,
+        attributes={"community": community_key},
+        generated_contents=generated_contents
+    )
     
     return {
         "generate_id": content_id,
+        "input_id": input_id,
         "generated_contents": generated_contents
     }
 
@@ -108,14 +137,70 @@ def regenerate_copy(user_id: str, generate_id: str, reason_text: str) -> Dict[st
     Returns:
         Dict: {generate_id: str, generated_contents: List[Dict]}
     """
+    import json
+    
     # 원본 생성 정보 조회
     original_content = get_content(generate_id)
     if not original_content:
         return {"error": "원본 생성 정보를 찾을 수 없습니다."}
     
-    # 새로운 콘텐츠 생성
-    return generate_viral_copy(user_id, original_content.product_info, 
-                             original_content.attributes)
+    # 이전 문구들을 JSON 형태로 변환
+    previous_contents = json.dumps(original_content.generated_contents, ensure_ascii=False)
+    
+    # 재생성용 product_data 구성
+    product_data = {
+        **original_content.product_info,
+        "regenerate_reason": reason_text,
+        "previous_contents": previous_contents
+    }
+    
+    # 커뮤니티 정보 추출 및 매핑
+    community_key = original_content.attributes.get("community", "mam2bebe")
+    
+    # 재생성 전용 프롬프트 사용
+    regenerate_community = f"regenerate_{community_key}"
+    
+    # AI 서비스 호출 (재생성 전용 프롬프트 사용)
+    result = ai_service.generate_product_content(
+        product_data=product_data,
+        community_tone=regenerate_community
+    )
+    
+    if result['success']:
+        # 성공 시 AI 서비스에서 반환된 generated_contents 사용
+        generated_contents = result.get('generated_contents', [{
+            'id': 1,
+            'tone': 'AI 재생성',
+            'text': result['content']
+        }])
+    else:
+        # 실패 시 빈 결과
+        generated_contents = [{
+            'id': 1,
+            'tone': '재생성 실패',
+            'text': f"재생성 실패: {result.get('error', 'Unknown error')}"
+        }]
+    
+    # 재생성된 콘텐츠에 이유 추가
+    for content in generated_contents:
+        content["regenerate_reason"] = reason_text
+    
+    # 새로운 콘텐츠 생성 기록 저장
+    content_id = create_content(
+        input_id=original_content.input_id,
+        parent_generate_id=generate_id,
+        generation_type="regenerate",
+        product_info=product_data,
+        attributes={"community": community_key, "regenerate_reason": reason_text},
+        generated_contents=generated_contents,
+        reason=reason_text
+    )
+    
+    return {
+        "generate_id": content_id,
+        "input_id": original_content.input_id,
+        "generated_contents": generated_contents
+    }
 
 
 def get_user_content_history(user_id: str, limit: int = 5) -> List[Dict[str, Any]]:

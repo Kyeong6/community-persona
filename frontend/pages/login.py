@@ -9,7 +9,7 @@ import os
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# from services import handle_user_login  # 임시 주석처리
+from services import handle_user_login
 from ..components.ui_helpers import show_success_message, show_error_message
 
 
@@ -55,8 +55,7 @@ def show_user_login_screen():
                 help="팀명과 사용자명을 입력한 후 로그인하세요"
             ):
                 if team_name and user_name:
-                    # user_id = handle_user_login(team_name, user_name)  # 임시 주석처리
-                    user_id = f"temp_{team_name}_{user_name}"  # 임시 user_id 생성
+                    user_id = handle_user_login(team_name, user_name)
                     st.session_state.user_id = user_id
                     st.session_state.team_name = team_name
                     st.session_state.user_name = user_name

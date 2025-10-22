@@ -82,11 +82,11 @@ system_prompt: |
 
   ## 4. 커뮤니티 상세 스타일 가이드
   ### [에펨코리아 스타일]
-  - **핵심:** {community_style.core}
-  - **문체:** {community_style.tone}
+  - **핵심:** {community_style_core}
+  - **문체:** {community_style_tone}
   - **특징:**
-    - {community_style.characteristics}
-  - **전문 용어:** {community_style.professional_terms}
+    - {community_style_characteristics}
+  - **전문 용어:** {community_style_professional_terms}
   - **사례:**
     - 예시 1: "빈폴 온쇼페 들어가서 최저가뜨노\n재고 다 XL까지 다 있음"
     - 예시 2: "가을엔 아무래도 카멜색 운동화지 싶어서 찾아보다가\n에어포스 된장은 너무 많이들 신으니 좀 다른거 없으려나 싶었는데\n나이키 에어모나크 카멜색 신규컬러로 나왔길래 공유함\n쿠폰에 카드할인까지 적용하니 7만원 중반 나옴"

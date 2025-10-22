@@ -1,4 +1,5 @@
 import uuid
+import json
 from datetime import datetime
 from database.connection import Database
 
@@ -213,7 +214,9 @@ def create_content(input_id: str, parent_generate_id: str, generation_type: str,
                             product_info, attributes, generated_contents, reason, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (content_id, input_id, parent_generate_id, generation_type,
-          product_info, attributes, generated_contents,
+          json.dumps(product_info, ensure_ascii=False),
+          json.dumps(attributes, ensure_ascii=False),
+          json.dumps(generated_contents, ensure_ascii=False),
           reason, now))
     
     db.commit()
@@ -236,9 +239,9 @@ def get_content(content_id: str):
             'input_id': row['input_id'],
             'parent_generate_id': row['parent_generate_id'],
             'generation_type': row['generation_type'],
-            'product_info': row['product_info'],
-            'attributes': row['attributes'],
-            'generated_contents': row['generated_contents'],
+            'product_info': json.loads(row['product_info']),
+            'attributes': json.loads(row['attributes']),
+            'generated_contents': json.loads(row['generated_contents']),
             'reason': row['reason'],
             'created_at': row['created_at']
         }
@@ -269,9 +272,9 @@ def get_user_contents(user_id: str, limit: int = 10):
         'community': row['community'],
         'parent_generate_id': row['parent_generate_id'],
         'generation_type': row['generation_type'],
-        'product_info': row['product_info'],
-        'attributes': row['attributes'],
-        'generated_contents': row['generated_contents'],
+        'product_info': json.loads(row['product_info']),
+        'attributes': json.loads(row['attributes']),
+        'generated_contents': json.loads(row['generated_contents']),
         'reason': row['reason'],
         'created_at': row['created_at']
     } for row in rows]

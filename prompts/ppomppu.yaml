@@ -78,9 +78,9 @@ system_prompt: |
 
   ## 4. 커뮤니티 상세 스타일 가이드
   ### [뽐뿌 스타일]
-  - **핵심:** {community_style.core}
-  - **문체:** {community_style.tone}
-  - **전문 용어:** {community_style.professional_terms}
+  - **핵심:** {community_style_core}
+  - **문체:** {community_style_tone}
+  - **전문 용어:** {community_style_professional_terms}
   - **사례:**
     - 예시 1: "아벤느 시칼파트 크림이 저렴하게\n올라왔기에 공유합니다\n100ml 두 개 세트에 클리낭스 클렌징 젤 100ml까지\n덤으로 주는 구성이라 가성비가 괜찮아 보이네요.\n피부진정 3종키트 사은품 있고\n선착순으로 주는 제품도 있네요.\n알림받기 쿠폰을 적용하면 28,810원까지 떨어집니다."
     - 예시 2: "지이크 체스터 롱코트 103,200원입니다\n롯데카드 있으면 98,040원까지 나옵니다\n기본 디자인이라 겨울에 입기 괜찮아보이네요\n모 77%랑 캐시미어 8% 들어있어서\n소재도 가격대비 괜찮은편같아요"

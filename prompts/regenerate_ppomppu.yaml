@@ -61,9 +61,9 @@ system_prompt: |
 
   ## 4. 커뮤니티 스타일 가이드
   ### [뽐뿌 스타일]
-  - **핵심:** {community_style.core}
-  - **문체:** {community_style.tone}
-  - **전문 용어:** {community_style.professional_terms}
+  - **핵심:** {community_style_core}
+  - **문체:** {community_style_tone}
+  - **전문 용어:** {community_style_professional_terms}
 
   ## 5. 최종 출력 형식 (JSON Only)
   {output_format}
