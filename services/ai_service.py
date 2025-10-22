@@ -250,7 +250,10 @@ class AIService:
     
     # 서비스 상태 확인
     def get_service_status(self) -> Dict[str, Any]:
-        try:    
+        try:
+            # 사용 가능한 커뮤니티 목록 가져오기
+            available_communities = self.get_available_communities()
+            
             return {
                 "status": "active",
                 "model_info": {
