@@ -1,15 +1,6 @@
-"""
-UI 헬퍼 함수들
-"""
-
 import streamlit as st
 import pyperclip
 import platform
-import sys
-import os
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from services import copy_action, get_user_content_history
 

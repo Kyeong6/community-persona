@@ -1,13 +1,4 @@
-"""
-사용자 입력 페이지
-"""
-
 import streamlit as st
-import sys
-import os
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from services import generate_viral_copy, user_feedback
 from utils.validators import validate_input_form

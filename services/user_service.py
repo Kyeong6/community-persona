@@ -1,9 +1,4 @@
-import os
-import sys
 from bson import ObjectId
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.crud import create_user
 

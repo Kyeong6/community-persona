@@ -1,12 +1,7 @@
-import os
-import sys
 import random
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 데이터베이스 초기화
 from database import create_tables

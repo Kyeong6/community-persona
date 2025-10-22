@@ -1,9 +1,4 @@
-import os
-import sys
 import streamlit as st
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from services import regenerate_copy, user_feedback
 from ..components.ui_helpers import create_content_cards

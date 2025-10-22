@@ -1,17 +1,7 @@
-"""
-AI 서비스 통합 모듈
-Gemini API, 프롬프트 관리, 콘텐츠 생성을 통합한 서비스
-"""
-
-import os
-import sys
 import time
 import google.generativeai as genai
 from typing import Dict, Any, List
 from dataclasses import dataclass
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import settings
 from utils.prompt_loader import load_prompt_template

@@ -1,10 +1,6 @@
 import os
 import yaml
-import sys
 from typing import Dict, Any
-
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import settings
 from utils.get_logger import logger
