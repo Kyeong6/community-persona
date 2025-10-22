@@ -75,6 +75,7 @@ system_prompt: |
   - 쿠폰: {coupon}
   - 특정 키워드: {keyword}
   - 기타: {etc}
+  - 베스트 사례: {bestCase}
 
   ## 3. 지침
   {guidelines}
