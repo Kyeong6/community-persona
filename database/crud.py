@@ -101,6 +101,22 @@ def get_user(user_id: str):
         }
     return None
 
+# 팀명과 사용자명으로 사용자 조회
+def get_user_by_team_and_name(team_name: str, user_name: str):
+    db = Database()
+    db.connect()
+    row = db.fetchone("SELECT * FROM users WHERE team_name = ? AND user_name = ?", (team_name, user_name))
+    db.close()
+    
+    if row:
+        return {
+            'id': row['id'],
+            'team_name': row['team_name'],
+            'user_name': row['user_name'],
+            'created_at': row['created_at']
+        }
+    return None
+
 
 # 사용자 피드백 생성
 def create_user_feedback(user_id: str, feedback: str) -> str:
