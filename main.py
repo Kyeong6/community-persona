@@ -12,18 +12,24 @@ from frontend import (
     show_user_info, 
     show_content_history
 )
+from frontend.components.sidebar import show_sidebar
 
 # 페이지 설정
 st.set_page_config(
     page_title="Community Viral Content Generator",
     page_icon="✨",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # CSS 스타일링
 st.markdown("""
 <style>
+    /* 사이드바 너비 확장 */
+    .css-1d391kg {
+        width: 350px !important;
+    }
+    
     .main-header {
         text-align: center;
         padding: 2rem 0;
@@ -100,11 +106,15 @@ def main():
         show_user_login_screen()
         return
     
-    # 로그인된 사용자 정보 표시
-    show_user_info(st.session_state.team_name, st.session_state.user_name, st.session_state.user_id)
+    # 사이드바 표시 (피드백 + 히스토리)
+    show_sidebar(
+        st.session_state.user_id, 
+        st.session_state.team_name, 
+        st.session_state.user_name
+    )
     
-    # 콘텐츠 이력 표시
-    show_content_history(st.session_state.user_id)
+    # 콘텐츠 이력 표시 (제거됨)
+    # show_content_history(st.session_state.user_id)
     
     # 헤더
     st.markdown("""

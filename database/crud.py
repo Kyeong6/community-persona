@@ -327,3 +327,90 @@ def update_content_text(content_id: str, version_id: int, new_text: str):
     db.commit()
     db.close()
     return True
+
+# 사용자 생성 히스토리 조회
+def get_user_generations(user_id: str, limit: int = 10):
+    """
+    사용자의 생성 히스토리를 조회합니다.
+    
+    Args:
+        user_id: 사용자 ID
+        limit: 조회할 최대 개수
+    
+    Returns:
+        list: 생성 히스토리 리스트
+    """
+    db = Database()
+    db.connect()
+    
+    try:
+        cursor = db.execute("""
+            SELECT c.id, c.product_info, c.attributes, c.generated_contents, c.created_at
+            FROM contents c
+            WHERE c.user_id = ?
+            ORDER BY c.created_at DESC
+            LIMIT ?
+        """, (user_id, limit))
+        
+        results = cursor.fetchall()
+        generations = []
+        
+        for row in results:
+            generations.append({
+                "id": row[0],
+                "product_info": json.loads(row[1]) if row[1] else {},
+                "attributes": json.loads(row[2]) if row[2] else {},
+                "generated_contents": json.loads(row[3]) if row[3] else [],
+                "created_at": row[4]
+            })
+        
+        return generations
+        
+    except Exception as e:
+        print(f"Error retrieving user generations: {e}")
+        return []
+    finally:
+        db.close()
+
+# 사용자 피드백 히스토리 조회
+def get_user_feedbacks(user_id: str, limit: int = 10):
+    """
+    사용자의 피드백 히스토리를 조회합니다.
+    
+    Args:
+        user_id: 사용자 ID
+        limit: 조회할 최대 개수
+    
+    Returns:
+        list: 피드백 히스토리 리스트
+    """
+    db = Database()
+    db.connect()
+    
+    try:
+        cursor = db.execute("""
+            SELECT id, feedback_text, feedback_type, created_at
+            FROM user_feedback
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (user_id, limit))
+        
+        results = cursor.fetchall()
+        feedbacks = []
+        
+        for row in results:
+            feedbacks.append({
+                "id": row[0],
+                "feedback_text": row[1],
+                "feedback_type": row[2],
+                "created_at": row[3]
+            })
+        
+        return feedbacks
+        
+    except Exception as e:
+        print(f"Error retrieving user feedbacks: {e}")
+        return []
+    finally:
+        db.close()
