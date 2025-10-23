@@ -43,8 +43,13 @@ def show_sidebar(user_id: str, team_name: str, user_name: str):
         
         # 피드백 전송 성공 메시지 표시
         if hasattr(st.session_state, 'feedback_sent') and st.session_state.feedback_sent:
-            st.success("🎉 피드백이 전송되었습니다!")
-            st.session_state.feedback_sent = False
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                st.success("🎉 피드백이 전송되었습니다!")
+            with col2:
+                if st.button("✕", key="close_feedback_msg", help="메시지 닫기", use_container_width=True):
+                    st.session_state.feedback_sent = False
+                    st.rerun()
         
         feedback_text = st.text_area(
             "서비스 개선을 위한 피드백을 남겨주세요!",

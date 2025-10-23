@@ -30,6 +30,50 @@ st.markdown("""
         width: 350px !important;
     }
     
+    /* 파랑색 버튼 스타일 - 새로운 원고 생성 버튼 */
+    button[data-testid="baseButton-secondary"][aria-label*="새로운 원고 생성"] {
+        background-color: #4285f4 !important;
+        color: white !important;
+        border: 1px solid #4285f4 !important;
+    }
+    
+    button[data-testid="baseButton-secondary"][aria-label*="새로운 원고 생성"]:hover {
+        background-color: #3367d6 !important;
+        border-color: #3367d6 !important;
+    }
+    
+    /* 대안: 키 기반 선택자 */
+    button[data-testid="baseButton-secondary"][key="new_generation_btn"] {
+        background-color: #4285f4 !important;
+        color: white !important;
+        border: 1px solid #4285f4 !important;
+    }
+    
+    button[data-testid="baseButton-secondary"][key="new_generation_btn"]:hover {
+        background-color: #3367d6 !important;
+        border-color: #3367d6 !important;
+    }
+    
+    /* 더 강력한 선택자 - 모든 secondary 버튼 중 마지막 */
+    div[data-testid="column"]:last-child button[data-testid="baseButton-secondary"] {
+        background-color: #4285f4 !important;
+        color: white !important;
+        border: 1px solid #4285f4 !important;
+    }
+    
+    div[data-testid="column"]:last-child button[data-testid="baseButton-secondary"]:hover {
+        background-color: #3367d6 !important;
+        border-color: #3367d6 !important;
+    }
+    
+    /* 피드백 닫기 버튼을 더 작게 */
+    button[key="close_feedback_msg"] {
+        min-height: 1.5rem !important;
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.75rem !important;
+        width: 2rem !important;
+    }
+    
     .main-header {
         text-align: center;
         padding: 2rem 0;

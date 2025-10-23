@@ -15,7 +15,7 @@ def show_results_screen():
     # 결과 그리드
     create_content_cards(st.session_state.generated_contents, st.session_state)
     
-    # 하단 액션 버튼 (기존 3개 버튼으로 복원)
+    # 하단 액션 버튼 (레이아웃 조정)
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1, 1])
     
@@ -25,17 +25,17 @@ def show_results_screen():
             st.rerun()
     
     with col2:
-        if st.button("🔄 새로운 원고 생성", use_container_width=True):
+        if st.button("✨ 다시 생성하기", type="primary", use_container_width=True):
+            # 재생성 이유 입력 모달 표시
+            st.session_state.show_regenerate_modal = True
+            st.rerun()
+    
+    with col3:
+        if st.button("🔄 새로운 원고 생성", use_container_width=True, key="new_generation_btn"):
             # 새로운 원고 생성 시 모든 입력값 초기화
             st.session_state.show_results = False
             # 입력값 초기화 플래그 설정
             st.session_state.clear_inputs = True
-            st.rerun()
-    
-    with col3:
-        if st.button("✨ 다시 생성하기", type="primary", use_container_width=True):
-            # 재생성 이유 입력 모달 표시
-            st.session_state.show_regenerate_modal = True
             st.rerun()
     
     # 재생성 모달
