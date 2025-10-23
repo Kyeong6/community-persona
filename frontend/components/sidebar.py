@@ -56,7 +56,7 @@ def show_sidebar(user_id: str, team_name: str, user_name: str):
             placeholder="예: 더 다양한 톤의 문구가 필요해요, 특정 키워드 강조 기능이 있었으면 좋겠어요",
             height=100,
             help="여러분의 소중한 의견이 더 나은 서비스로 이어집니다😄",
-            key="sidebar_feedback"
+            key="main_sidebar_feedback"
         )
         
         if st.button("📝 피드백 전송", use_container_width=True):

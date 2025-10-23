@@ -66,6 +66,18 @@ def create_tables():
         )
     """)
 
+    # 채택 기록 테이블 (복사 버튼 클릭 추적)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS content_adoptions (
+            id TEXT PRIMARY KEY NOT NULL,
+            user_id TEXT NOT NULL,
+            content_id TEXT NOT NULL,
+            tone TEXT NOT NULL,
+            created_at DATETIME NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
     db.commit()
     db.close()
 
@@ -345,9 +357,10 @@ def get_user_generations(user_id: str, limit: int = 10):
     
     try:
         cursor = db.execute("""
-            SELECT c.id, c.product_info, c.attributes, c.generated_contents, c.created_at
+            SELECT c.id, c.product_info, c.attributes, c.generated_contents, c.created_at, c.generation_type
             FROM contents c
-            WHERE c.user_id = ?
+            JOIN user_inputs ui ON c.input_id = ui.id
+            WHERE ui.user_id = ?
             ORDER BY c.created_at DESC
             LIMIT ?
         """, (user_id, limit))
@@ -361,7 +374,8 @@ def get_user_generations(user_id: str, limit: int = 10):
                 "product_info": json.loads(row[1]) if row[1] else {},
                 "attributes": json.loads(row[2]) if row[2] else {},
                 "generated_contents": json.loads(row[3]) if row[3] else [],
-                "created_at": row[4]
+                "created_at": row[4],
+                "generation_type": row[5]
             })
         
         return generations
@@ -369,6 +383,73 @@ def get_user_generations(user_id: str, limit: int = 10):
     except Exception as e:
         print(f"Error retrieving user generations: {e}")
         return []
+    finally:
+        db.close()
+
+# 채택 기록 저장
+def record_content_adoption(user_id: str, content_id: str, tone: str):
+    """콘텐츠 채택 기록을 저장합니다."""
+    db = Database()
+    db.connect()
+    
+    adoption_id = str(uuid.uuid4())
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    db.execute("""
+        INSERT INTO content_adoptions (id, user_id, content_id, tone, created_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (adoption_id, user_id, content_id, tone, now))
+    
+    db.commit()
+    db.close()
+    return adoption_id
+
+# 사용자 채택 횟수 조회
+def get_user_adoption_count(user_id: str):
+    """사용자의 총 채택 횟수를 조회합니다."""
+    db = Database()
+    db.connect()
+    
+    try:
+        cursor = db.execute("""
+            SELECT COUNT(*) as adoption_count
+            FROM content_adoptions
+            WHERE user_id = ?
+        """, (user_id,))
+        
+        result = cursor.fetchone()
+        return result[0] if result else 0
+        
+    except Exception as e:
+        print(f"Error retrieving adoption count: {e}")
+        return 0
+    finally:
+        db.close()
+
+# 사용자 선호 톤 조회
+def get_user_preferred_tone(user_id: str):
+    """사용자가 가장 많이 채택한 톤을 조회합니다."""
+    db = Database()
+    db.connect()
+    
+    try:
+        cursor = db.execute("""
+            SELECT tone, COUNT(*) as count
+            FROM content_adoptions
+            WHERE user_id = ?
+            GROUP BY tone
+            ORDER BY count DESC
+            LIMIT 1
+        """, (user_id,))
+        
+        result = cursor.fetchone()
+        if result:
+            return result[0]  # 가장 많이 채택한 톤
+        return None
+        
+    except Exception as e:
+        print(f"Error retrieving preferred tone: {e}")
+        return None
     finally:
         db.close()
 

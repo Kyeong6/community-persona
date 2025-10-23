@@ -2,7 +2,8 @@ import streamlit as st
 import pyperclip
 import platform
 
-from services import copy_action, get_user_content_history
+from services import copy_action
+from database.crud import record_content_adoption
 from database.crud import update_content_text
 
 # 성공 메시지 표시
@@ -165,11 +166,18 @@ def create_content_cards(contents: list, session_state: dict):
                     if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
+                            # 기존 copy_action 호출
                             copy_action(
                                 session_state['user_id'],
                                 session_state['current_generate_id'],
                                 str(content['id']),
                                 tone=content.get('tone', 'Unknown')
+                            )
+                            # 채택 기록 저장
+                            record_content_adoption(
+                                session_state['user_id'],
+                                str(content['id']),
+                                content.get('tone', 'Unknown')
                             )
                         else:
                             show_copy_failure_message()

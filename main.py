@@ -13,6 +13,8 @@ from frontend import (
     show_content_history
 )
 from frontend.components.sidebar import show_sidebar
+from frontend.pages.history import show_history_page
+from frontend.pages.community_cases import show_community_cases_page
 
 # 페이지 설정
 st.set_page_config(
@@ -150,28 +152,40 @@ def main():
         show_user_login_screen()
         return
     
-    # 사이드바 표시 (피드백 + 히스토리)
-    show_sidebar(
-        st.session_state.user_id, 
-        st.session_state.team_name, 
-        st.session_state.user_name
-    )
+    # 현재 페이지 확인
+    current_page = st.session_state.get('current_page', 'main')
+    
+    # 사이드바 표시 (메인 페이지에서만)
+    if current_page == 'main':
+        show_sidebar(
+            st.session_state.user_id, 
+            st.session_state.team_name, 
+            st.session_state.user_name
+        )
     
     # 콘텐츠 이력 표시 (제거됨)
     # show_content_history(st.session_state.user_id)
     
-    # 헤더
-    st.markdown("""
-    <div class="main-header">
-        <h1>✨ 커뮤니티 바이럴 콘텐츠 생성 시스템</h1>
-        <p>상품 정보를 입력하고 커뮤니티에 맞는 원고를 자동으로 생성하세요!</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if not st.session_state.show_results:
-        show_input_form()
+    if current_page == 'history':
+        # 활동 히스토리 페이지
+        show_history_page(st.session_state.user_id)
+    elif current_page == 'community_cases':
+        # 커뮤니티별 사례 페이지
+        show_community_cases_page(st.session_state.user_id)
     else:
-        show_results_screen()
+        # 메인 페이지 (기본)
+        # 헤더
+        st.markdown("""
+        <div class="main-header">
+            <h1>✨ 커뮤니티 바이럴 콘텐츠 생성 시스템</h1>
+            <p>상품 정보를 입력하고 커뮤니티에 맞는 원고를 자동으로 생성하세요!</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if not st.session_state.show_results:
+            show_input_form()
+        else:
+            show_results_screen()
 
 if __name__ == "__main__":
     main()
