@@ -31,8 +31,8 @@ def show_history_page(user_id: str):
             st.session_state.show_results = False  # 상품 정보 입력 화면으로 이동
             st.rerun()
         
-        # 커뮤니티별 사례 버튼
-        if st.button("🏘️ 커뮤니티별 사례", use_container_width=True, key="history_community"):
+        # 커뮤니티별 베스트 사례 버튼
+        if st.button("🏘️ 커뮤니티별 베스트 사례", use_container_width=True, key="history_community"):
             st.session_state.current_page = "community_cases"
             st.rerun()
         
@@ -53,7 +53,7 @@ def show_history_page(user_id: str):
         
         feedback_text = st.text_area(
             "서비스 개선을 위한 피드백을 남겨주세요!",
-            placeholder="예: 더 다양한 톤의 문구가 필요해요, 특정 키워드 강조 기능이 있었으면 좋겠어요",
+            placeholder="개선사항이나 의견을 자유롭게 작성해주세요",
             height=100,
             help="여러분의 소중한 의견이 더 나은 서비스로 이어집니다😄",
             key="history_feedback_text"

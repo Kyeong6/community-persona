@@ -138,12 +138,23 @@ def show_input_form():
     st.subheader("👍 베스트 사례")
     
     # 베스트 사례를 간단한 방식으로 처리 (안정성을 위해)
+    # 베스트 사례 적용 시 세션에서 가져온 값 사용
+    best_case_value = st.session_state.get('best_case', default_values.get('best_case', ''))
+    
     best_case = st.text_area(
         "베스트 사례 원고",
-        value=default_values.get('best_case', ''),
+        value=best_case_value,
         placeholder="좋은 반응을 얻었던 원고 문구나 표현 방식을 자유롭게 입력하세요",
         height=200,
     )
+    
+    # 베스트 사례가 적용된 경우 표시
+    if st.session_state.get('best_case'):
+        st.success("✅ 베스트 사례가 적용되었습니다!")
+        # 적용 후 세션에서 베스트 사례 제거 (중복 적용 방지)
+        if st.button("🔄 베스트 사례 초기화", key="clear_best_case"):
+            st.session_state.best_case = None
+            st.rerun()
     
     st.divider()
     

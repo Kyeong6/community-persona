@@ -1,17 +1,165 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+
+def load_community_data():
+    """커뮤니티 데이터를 로드하고 분석합니다."""
+    try:
+        # CSV 파일 로드
+        df = pd.read_csv('community_data.csv')
+        
+        # 데이터 정리
+        df['view_cnt'] = pd.to_numeric(df['view_cnt'], errors='coerce').fillna(0)
+        df['like_cnt'] = pd.to_numeric(df['like_cnt'], errors='coerce').fillna(0)
+        df['comment_cnt'] = pd.to_numeric(df['comment_cnt'], errors='coerce').fillna(0)
+        
+        # 종합 지표 계산 (가중 평균)
+        # 조회수 40%, 좋아요 35%, 댓글수 25% 가중치 적용
+        df['composite_score'] = (
+            df['view_cnt'] * 0.4 + 
+            df['like_cnt'] * 0.35 + 
+            df['comment_cnt'] * 0.25
+        )
+        
+        return df
+    except Exception as e:
+        st.error(f"데이터 로드 중 오류가 발생했습니다: {e}")
+        return pd.DataFrame()
+
+def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=10):
+    """커뮤니티별 상위 사례를 반환합니다."""
+    community_data = df[df['channel'] == community].copy()
+    
+    if community_data.empty:
+        return pd.DataFrame()
+    
+    # 정렬 기준에 따라 정렬
+    if sort_by == 'composite_score':
+        top_cases = community_data.nlargest(top_n, 'composite_score')
+    elif sort_by == 'like_cnt':
+        top_cases = community_data.nlargest(top_n, 'like_cnt')
+    elif sort_by == 'view_cnt':
+        top_cases = community_data.nlargest(top_n, 'view_cnt')
+    elif sort_by == 'comment_cnt':
+        top_cases = community_data.nlargest(top_n, 'comment_cnt')
+    else:
+        top_cases = community_data.nlargest(top_n, 'composite_score')
+    
+    return top_cases
+
+def show_community_tab(df, channel, display_name):
+    """커뮤니티별 탭 내용을 표시합니다."""
+    # 커뮤니티별 좋아요/추천수 표시 설정
+    like_label = "👍 좋아요" if channel == "mam2bebe" else "👍 추천수"
+    
+    # 정렬 기준 선택
+    sort_options = {
+        '📊 종합지표': 'composite_score',
+        like_label: 'like_cnt', 
+        '👀 조회수': 'view_cnt',
+        '💬 댓글수': 'comment_cnt'
+    }
+    
+    # 정렬 기준 선택 UI
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown(f"### {display_name} 베스트 사례")
+    
+    with col2:
+        sort_by = st.selectbox(
+            "정렬 기준:",
+            options=list(sort_options.keys()),
+            index=0,  # 기본값: 종합지표
+            key=f"sort_{channel}"
+        )
+    
+    # 선택된 정렬 기준으로 데이터 가져오기
+    sort_key = sort_options[sort_by]
+    top_cases = get_top_cases_by_community(df, channel, sort_key, 10)
+    
+    if top_cases.empty:
+        st.warning(f"{display_name} 데이터가 없습니다.")
+        return
+    
+    for idx, (_, case) in enumerate(top_cases.iterrows(), 1):
+        with st.expander(f"#{idx} {case['title'][:50]}{'...' if len(case['title']) > 50 else ''}", expanded=False):
+            # 기본 정보와 베스트 사례 적용 버튼을 같은 행에 배치
+            col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+            
+            with col1:
+                st.metric("👀 조회수", f"{case['view_cnt']:,}")
+            with col2:
+                # 커뮤니티별로 좋아요/추천수 표시
+                if channel == "mam2bebe":
+                    st.metric("👍 좋아요", f"{case['like_cnt']:,}")
+                else:
+                    st.metric("👍 추천수", f"{case['like_cnt']:,}")
+            with col3:
+                st.metric("💬 댓글", f"{case['comment_cnt']:,}")
+            with col4:
+                # 베스트 사례 적용 버튼을 맨 오른쪽에 배치
+                if st.button(f"📋 베스트 사례 적용", key=f"apply_case_{channel}_{idx}", use_container_width=True):
+                    # 확인 상태로 변경
+                    st.session_state[f'show_confirm_{channel}_{idx}'] = True
+                    st.rerun()
+            
+            # 베스트 사례 적용 확인 섹션
+            if st.session_state.get(f'show_confirm_{channel}_{idx}', False):
+                st.markdown("---")
+                st.markdown("### ⭐️ 베스트 사례 적용 확인")
+                st.markdown("**상품 정보 기입 화면에 적용하시겠습니까?**")
+                
+                # 확인/취소 버튼
+                col_confirm1, col_confirm2 = st.columns(2)
+                
+                with col_confirm1:
+                    if st.button("✅ 확인", key=f"confirm_apply_{channel}_{idx}", use_container_width=True, type="primary"):
+                        # 베스트 사례를 세션에 저장하고 메인 페이지로 이동
+                        st.session_state.best_case = case['content']
+                        st.session_state.current_page = "main"
+                        st.session_state.show_results = False
+                        st.session_state[f'show_confirm_{channel}_{idx}'] = False
+                        st.success("✅ 베스트 사례가 적용되었습니다! 상품 정보 기입 화면으로 이동합니다.")
+                        st.rerun()
+                
+                with col_confirm2:
+                    if st.button("❌ 취소", key=f"cancel_apply_{channel}_{idx}", use_container_width=True):
+                        st.session_state[f'show_confirm_{channel}_{idx}'] = False
+                        st.rerun()
+            
+            st.markdown("---")
+            
+            # 제목과 내용
+            st.markdown(f"**제목:** {case['title']}")
+            st.markdown(f"**카테고리:** {case['category']}")
+            st.markdown(f"**작성일:** {case['created_at']}")
+            
+            # 전체 내용 표시 (미리보기 제거하고 전체 내용을 바로 표시)
+            st.markdown("**내용:**")
+            st.markdown(f"```\n{case['content']}\n```")
 
 def show_community_cases_page(user_id: str):
     """커뮤니티별 사례 페이지를 표시합니다."""
+    
+    # 사이드바 폭 조정 CSS
+    st.markdown("""
+    <style>
+    .css-1d391kg {
+        width: 300px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # 사이드바 네비게이션
     with st.sidebar:
         # 사용자 정보
         st.markdown("### 👤 사용자 정보")
         st.markdown(f"**팀:** {st.session_state.get('team_name', '')}")
-        st.markdown(f"**이름:** {st.session_state.get('user_name', '')}")
+        st.markdown(f"**사용자:** {st.session_state.get('user_name', '')}")
         
         # 로그아웃 버튼
-        if st.button("🚪 로그아웃", type="secondary", use_container_width=True, key="community_logout"):
+        if st.button("🚪 로그아웃", key="community_logout"):
             # 세션 상태 초기화
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
@@ -19,17 +167,17 @@ def show_community_cases_page(user_id: str):
         
         st.divider()
         
-        # 네비게이션 섹션
+        # 페이지 이동 버튼들
         st.markdown("### 🧭 페이지 이동")
         
         # 메인 화면 버튼
-        if st.button("🏠 상품 정보 기입", use_container_width=True, key="community_main"):
+        if st.button("🏠 상품 정보 기입", use_container_width=True, key="community_to_main"):
             st.session_state.current_page = "main"
-            st.session_state.show_results = False  # 상품 정보 입력 화면으로 이동
+            st.session_state.show_results = False
             st.rerun()
         
         # 활동 히스토리 버튼
-        if st.button("📊 활동 히스토리", use_container_width=True, key="community_history"):
+        if st.button("📊 활동 히스토리", use_container_width=True, key="community_to_history"):
             st.session_state.current_page = "history"
             st.rerun()
         
@@ -39,18 +187,18 @@ def show_community_cases_page(user_id: str):
         st.markdown("### 💬 피드백")
         
         # 피드백 전송 성공 메시지 표시
-        if hasattr(st.session_state, 'feedback_sent') and st.session_state.feedback_sent:
+        if hasattr(st.session_state, 'feedback_sent_community') and st.session_state.feedback_sent_community:
             col1, col2 = st.columns([5, 1])
             with col1:
                 st.success("🎉 피드백이 전송되었습니다!")
             with col2:
-                if st.button("✕", key="close_feedback_msg", help="메시지 닫기", use_container_width=True):
-                    st.session_state.feedback_sent = False
+                if st.button("✕", key="close_feedback_community", help="메시지 닫기", use_container_width=True):
+                    st.session_state.feedback_sent_community = False
                     st.rerun()
         
         feedback_text = st.text_area(
             "서비스 개선을 위한 피드백을 남겨주세요!",
-            placeholder="예: 더 다양한 톤의 문구가 필요해요, 특정 키워드 강조 기능이 있었으면 좋겠어요",
+            placeholder="개선사항이나 의견을 자유롭게 작성해주세요",
             height=100,
             help="여러분의 소중한 의견이 더 나은 서비스로 이어집니다😄",
             key="community_feedback_text"
@@ -66,7 +214,7 @@ def show_community_cases_page(user_id: str):
                     )
                     
                     if feedback_result:
-                        st.session_state.feedback_sent = True
+                        st.session_state.feedback_sent_community = True
                         st.rerun()
                     else:
                         st.error("피드백 전송에 실패했습니다.")
@@ -75,87 +223,45 @@ def show_community_cases_page(user_id: str):
             else:
                 st.warning("피드백 내용을 입력해주세요")
     
-    # 메인화면 이동 버튼
+    # 메인 콘텐츠
+    # 뒤로가기 버튼과 제목을 같은 줄에 배치
     col1, col2, col3 = st.columns([1, 2, 1])
+    
     with col1:
-        if st.button("← 메인화면", key="community_cases_back_button"):
+        if st.button("← 메인화면", key="community_back_to_main"):
             st.session_state.current_page = "main"
-            st.session_state.show_results = False  # 상품 정보 입력 화면으로 이동
+            st.session_state.show_results = False
             st.rerun()
     
-    # 페이지 헤더
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1>🏘️ 커뮤니티별 사례</h1>
-        <p>각 커뮤니티별 성공 사례와 특징을 확인해보세요</p>
-    </div>
-    """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("<h1 style='text-align: center;'>🏘️ 커뮤니티별 베스트 사례</h1>", unsafe_allow_html=True)
     
-    # 커뮤니티별 사례 내용
-    st.markdown("### 📋 커뮤니티별 특징")
+    with col3:
+        st.empty()  # 빈 공간
     
-    # 커뮤니티 매핑
-    community_mapping = {
-        "mam2bebe": "맘이베베",
-        "fmkorea": "에펨코리아", 
-        "ppomppu": "뽐뿌"
-    }
+    st.markdown("---")
     
-    # 각 커뮤니티별 정보 표시
-    for community_key, community_name in community_mapping.items():
-        with st.expander(f"🏘️ {community_name}", expanded=False):
-            st.markdown(f"**커뮤니티:** {community_name}")
-            
-            if community_key == "mam2bebe":
-                st.markdown("""
-                **특징:**
-                - 육아 관련 상품에 특화
-                - 엄마들의 실용적인 관점 중시
-                - 아이의 안전과 건강을 최우선으로 고려
-                - 가성비와 실용성 강조
-                
-                **성공 사례:**
-                - 육아용품, 아동복, 장난감 등
-                - "우리 아이를 위한" 접근법
-                - 실제 사용 후기와 경험담 공유
-                """)
-            
-            elif community_key == "fmkorea":
-                st.markdown("""
-                **특징:**
-                - 패션, 뷰티, 라이프스타일 중심
-                - 트렌드에 민감하고 세련된 감각
-                - 브랜드와 디자인에 대한 관심 높음
-                - SNS 친화적인 콘텐츠 선호
-                
-                **성공 사례:**
-                - 패션 아이템, 뷰티 제품, 라이프스타일 용품
-                - "이거 진짜 예쁘다" 같은 감성적 접근
-                - 인스타그램 스타일의 시각적 어필
-                """)
-            
-            elif community_key == "ppomppu":
-                st.markdown("""
-                **특징:**
-                - 할인과 특가 정보에 민감
-                - 가성비와 실용성 중시
-                - 구체적인 가격 정보 선호
-                - 실제 구매 후기와 리뷰 중시
-                
-                **성공 사례:**
-                - 전자제품, 생활용품, 식품 등
-                - "이 가격에 이 성능" 접근법
-                - 구체적인 할인율과 혜택 정보
-                """)
+    # 데이터 로드
+    df = load_community_data()
     
-    st.divider()
+    if df.empty:
+        st.error("데이터를 불러올 수 없습니다.")
+        return
     
-    # 사용 팁
-    st.markdown("### 💡 활용 팁")
-    st.info("""
-    **각 커뮤니티의 특성을 파악하고 맞춤형 콘텐츠를 생성하세요!**
+    # 커뮤니티별 베스트 사례
+    st.subheader("🏆 커뮤니티별 베스트 사례 (Top 10)")
     
-    1. **맘이베베**: 안전성과 실용성을 강조
-    2. **에펨코리아**: 트렌드와 디자인을 어필
-    3. **뽐뿌**: 가성비와 할인 혜택을 부각
-    """)
+    # 정렬 기준 설명
+    st.info("💡 **정렬 기준**: 종합지표(조회수 40% + 좋아요 35% + 댓글수 25%)  |  좋아요(추천수)  |  조회수  |  댓글수")
+    
+    # 탭으로 커뮤니티별 사례 표시
+    tab1, tab2, tab3 = st.tabs(["👩‍🍼 맘이베베", "🅵 에펨코리아", "🅿 뽐뿌"])
+    
+    with tab1:
+        show_community_tab(df, 'mam2bebe', '맘이베베')
+    
+    with tab2:
+        show_community_tab(df, 'fmkorea', '에펨코리아')
+    
+    with tab3:
+        show_community_tab(df, 'ppomppu', '뽐뿌')
