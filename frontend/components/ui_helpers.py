@@ -20,10 +20,28 @@ def show_info_message(message: str):
 # 클립보드에 텍스트 복사
 def copy_to_clipboard(text: str) -> bool:
     try:
+        # 먼저 pyperclip 시도
         pyperclip.copy(text)
         return True
     except Exception:
-        return False
+        # pyperclip 실패 시 운영체제별 네이티브 명령어 사용
+        try:
+            import subprocess
+            
+            if platform.system() == "Windows":
+                # Windows: clip 명령어 사용
+                process = subprocess.Popen(['clip'], stdin=subprocess.PIPE, text=True, shell=True)
+                process.communicate(input=text)
+                return process.returncode == 0
+            elif platform.system() == "Darwin":
+                # macOS: pbcopy 사용
+                process = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE, text=True)
+                process.communicate(input=text)
+                return process.returncode == 0
+            else:
+                return False
+        except Exception:
+            return False
 
 # 운영체제별 복사 메시지 반환
 def get_platform_copy_message() -> str:
@@ -31,12 +49,23 @@ def get_platform_copy_message() -> str:
         return "✅ 원고가 클립보드에 복사되었습니다! \n**Cmd+V**로 붙여넣기하세요."
     elif platform.system() == "Windows":  # Windows
         return "✅ 원고가 클립보드에 복사되었습니다! \n**Ctrl+V**로 붙여넣기하세요."
-    else:  # Linux, 기타
-        return "✅ 원고가 클립보드에 복사되었습니다! \n**Ctrl+V**로 붙여넣기하세요."
+    else:  # 기타 (지원하지 않는 OS)
+        return "✅ 원고가 클립보드에 복사되었습니다!"
 
 # 복사 성공 메시지 표시
 def show_copy_success_message():
     st.success(get_platform_copy_message())
+
+# 복사 실패 메시지 표시
+def show_copy_failure_message():
+    st.error("❌ 클립보드 복사에 실패했습니다. 텍스트를 수동으로 복사해주세요.")
+    
+    if platform.system() == "Darwin":  # macOS
+        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 **Cmd+C**로 복사하세요.")
+    elif platform.system() == "Windows":  # Windows
+        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 **Ctrl+C**로 복사하세요.")
+    else:
+        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 복사하세요.")
 
 # 상품 정보 포맷팅
 def format_product_info(product_info: dict) -> str:
@@ -57,10 +86,13 @@ def create_content_cards(contents: list, session_state: dict):
             # 카드 컨테이너
             with st.container():
                 # 헤더
-                st.markdown(f"**버전 {content['id']}** {content['tone']}")
+                st.markdown(f"""
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">
+                    {content['tone']}
+                </div>
+                """, unsafe_allow_html=True)
                 
                 # 원고 내용
-                st.markdown("---")
                 
                 # 수정 모드 확인
                 if session_state.get(f"editing_{content['id']}", False):
@@ -71,7 +103,12 @@ def create_content_cards(contents: list, session_state: dict):
                         key=f"edit_content_{session_state.get('current_generate_id', 'default')}_{content['id']}"
                     )
                     
-                    col_save, col_cancel = st.columns(2)
+                    # 저장/취소 버튼을 오른쪽 하단에 붙여서 배치
+                    st.markdown("""
+                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                    """, unsafe_allow_html=True)
+                    
+                    col_save, col_cancel = st.columns([1, 1])
                     with col_save:
                         if st.button("💾 저장", key=f"save_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                             # 데이터베이스 업데이트
@@ -97,33 +134,54 @@ def create_content_cards(contents: list, session_state: dict):
                         if st.button("❌ 취소", key=f"cancel_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                             session_state[f"editing_{content['id']}"] = False
                             st.rerun()
+                    
+                    st.markdown("""
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.text_area(
-                        "생성된 원고",
-                        value=content['text'],
-                        height=200,
-                        disabled=True,
-                        key=f"content_{session_state.get('current_generate_id', 'default')}_{content['id']}"
-                    )
+                    # 가독성을 위해 마크다운으로 표시
+                    st.markdown(f"""
+                    <div style="
+                        background-color: #f8f9fa;
+                        border: 1px solid #dee2e6;
+                        border-radius: 8px;
+                        padding: 16px;
+                        margin: 8px 0;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #212529;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                    ">{content['text']}</div>
+                    """, unsafe_allow_html=True)
                 
-                # 액션 버튼
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
+                # 액션 버튼 - CSS로 오른쪽 하단에 붙여서 배치
+                st.markdown("""
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                """, unsafe_allow_html=True)
+                
+                col1, col2 = st.columns([1, 1])
+                with col1:
                     if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
-                            # 복사 액션 로그 기록 (톤 정보 포함)
                             copy_action(
                                 session_state['user_id'],
                                 session_state['current_generate_id'],
                                 str(content['id']),
                                 tone=content.get('tone', 'Unknown')
                             )
+                        else:
+                            show_copy_failure_message()
                 
-                with col_btn2:
+                with col2:
                     if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
                         session_state[f"editing_{content['id']}"] = True
                         st.rerun()
+                
+                st.markdown("""
+                </div>
+                """, unsafe_allow_html=True)
                 
                 st.markdown("")  # 간격
 
