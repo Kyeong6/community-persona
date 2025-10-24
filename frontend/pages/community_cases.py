@@ -64,7 +64,7 @@ def show_community_tab(df, channel, display_name):
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown(f"### {display_name} 베스트 사례")
+        st.markdown(f"### {display_name}")
     
     with col2:
         sort_by = st.selectbox(
@@ -251,17 +251,131 @@ def show_community_cases_page(user_id: str):
     # 커뮤니티별 베스트 사례
     st.subheader("🏆 커뮤니티별 베스트 사례 (Top 10)")
     
-    # 정렬 기준 설명
-    st.info("💡 **정렬 기준**: 종합지표(조회수 40% + 좋아요 35% + 댓글수 25%)  |  좋아요(추천수)  |  조회수  |  댓글수")
+    # 정렬 기준 설명과 베스트 사례 안내
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
+                    padding: 1.5rem; 
+                    border-radius: 12px; 
+                    text-align: center; 
+                    margin: 1.5rem 0;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    border: 1px solid #e2e8f0;
+                    height: 240px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;">
+            <div>
+                <h4 style="margin: 0 0 1rem 0; color: #1e293b; font-weight: 600; font-size: 1.1rem;">
+                    📊 정렬 기준
+                </h4>
+                <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                    <span style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); 
+                                color: #1e40af; 
+                                padding: 0.5rem 1rem; 
+                                border-radius: 20px; 
+                                font-size: 0.9rem; 
+                                font-weight: 500;
+                                box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
+                                border: 2px solid #3b82f6;">
+                        📈 종합지표
+                    </span>
+                    <span style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); 
+                                color: #7c3aed; 
+                                padding: 0.5rem 1rem; 
+                                border-radius: 20px; 
+                                font-size: 0.9rem; 
+                                font-weight: 500;
+                                box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+                                border: 2px solid #a855f7;">
+                        👍 좋아요/추천
+                    </span>
+                    <span style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); 
+                                color: #166534; 
+                                padding: 0.5rem 1rem; 
+                                border-radius: 20px; 
+                                font-size: 0.9rem; 
+                                font-weight: 500;
+                                box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
+                                border: 2px solid #22c55e;">
+                        👀 조회수
+                    </span>
+                    <span style="background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); 
+                                color: #c2410c; 
+                                padding: 0.5rem 1rem; 
+                                border-radius: 20px; 
+                                font-size: 0.9rem; 
+                                font-weight: 500;
+                                box-shadow: 0 2px 4px rgba(194, 65, 12, 0.2);
+                                border: 2px solid #f97316;">
+                        💬 댓글수
+                    </span>
+                </div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.8); 
+                        padding: 0.75rem; 
+                        border-radius: 8px; 
+                        border: 1px solid #e2e8f0;">
+                <p style="margin: 0; font-size: 0.85rem; color: #64748b; font-weight: 500;">
+                    💡 <strong>종합지표</strong> = 조회수 40% + 좋아요 35% + 댓글수 25%
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+                    padding: 1.5rem; 
+                    border-radius: 12px; 
+                    text-align: center; 
+                    margin: 1.5rem 0;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    border: 1px solid #f59e0b;
+                    height: 240px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;">
+            <div>
+                <h4 style="margin: 0 0 1rem 0; color: #92400e; font-weight: 600; font-size: 1.1rem;">
+                    🎯 베스트 사례 활용법
+                </h4>
+                <div style="text-align: left; margin-bottom: 0.3rem;">
+                    <div style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                        <span style="background: #f59e0b; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.5rem; font-weight: bold;">1</span>
+                        <span style="font-size: 0.8rem; color: #92400e; font-weight: 500;">원하는 사례를 찾아보세요</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                        <span style="background: #f59e0b; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.5rem; font-weight: bold;">2</span>
+                        <span style="font-size: 0.8rem; color: #92400e; font-weight: 500;">📋 베스트 사례 적용 버튼 클릭</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span style="background: #f59e0b; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.5rem; font-weight: bold;">3</span>
+                        <span style="font-size: 0.8rem; color: #92400e; font-weight: 500;">자동으로 입력 폼에 적용됩니다</span>
+                    </div>
+                </div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.8); 
+                        padding: 0.75rem; 
+                        border-radius: 8px; 
+                        border: 1px solid #f59e0b;">
+                <p style="margin: 0; font-size: 0.85rem; color: #92400e; font-weight: 500;">
+                    ✨ <strong>팁:</strong> 성공한 사례의 문구를 참고하여 더 효과적인 원고를 만들어보세요!
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
     # 탭으로 커뮤니티별 사례 표시
-    tab1, tab2, tab3 = st.tabs(["👩‍🍼 맘이베베", "🅵 에펨코리아", "🅿 뽐뿌"])
+    tab1, tab2, tab3 = st.tabs(["👩‍🍼 맘이베베", "🅿 뽐뿌", "🅵 에펨코리아"])
     
     with tab1:
         show_community_tab(df, 'mam2bebe', '맘이베베')
     
     with tab2:
-        show_community_tab(df, 'fmkorea', '에펨코리아')
+        show_community_tab(df, 'ppomppu', '뽐뿌')
     
     with tab3:
-        show_community_tab(df, 'ppomppu', '뽐뿌')
+        show_community_tab(df, 'fmkorea', '에펨코리아')
