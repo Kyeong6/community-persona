@@ -3,8 +3,7 @@ import pyperclip
 import platform
 
 from services import copy_action
-from database.crud import record_content_adoption
-from database.crud import update_content_text
+from database.crud import record_content_adoption, update_content_text, get_content_adopted_tones
 
 # 성공 메시지 표시
 def show_success_message(message: str):
@@ -82,10 +81,19 @@ def format_attributes(attributes: dict) -> str:
 def create_content_cards(contents: list, session_state: dict):
     cols = st.columns(3)
     
+    # 복사한 톤 정보 조회
+    current_generate_id = session_state.get('current_generate_id')
+    adopted_tones = []
+    if current_generate_id:
+        adopted_tones = get_content_adopted_tones(current_generate_id)
+    
     for i, content in enumerate(contents):
         with cols[i % 3]:
             # 카드 컨테이너
             with st.container():
+                # 복사한 톤인지 확인
+                is_adopted = content['tone'] in adopted_tones
+                
                 # 헤더와 설명
                 tone_descriptions = {
                     '정보전달형': '상품의 <strong style="color: #1f40af;">최종 가격 조건과 핵심 스펙</strong>만 빠르고 객관적으로 요약하여 전달',
@@ -98,18 +106,43 @@ def create_content_cards(contents: list, session_state: dict):
                 
                 description = tone_descriptions.get(content['tone'], '')
                 
+                # 복사한 톤이면 강조 표시
+                adopted_icon = ' ✅' if is_adopted else ''
+                border_color = '#28a745' if is_adopted else '#3b82f6'
+                shadow_style = 'box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);' if is_adopted else 'box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);'
+                
                 st.markdown(f"""
                 <div style="margin-bottom: 8px;">
                     <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #1f2937;">
-                        {content['tone']}
+                        {content['tone']}{adopted_icon}
                     </div>
-                    <div style="font-size: 12px; color: #4b5563; line-height: 1.5; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border-left: 4px solid #3b82f6; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+                    <div style="font-size: 12px; color: #4b5563; line-height: 1.5; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border-left: 4px solid {border_color}; {shadow_style}">
                         {description}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # 원고 내용
+                # 원고 내용 - 복사한 톤이면 다른 배경색
+                content_bg_color = '#e8f5e8' if is_adopted else '#f8f9fa'
+                content_border_color = '#28a745' if is_adopted else '#dee2e6'
+                
+                st.markdown(f"""
+                <div style="
+                    background-color: {content_bg_color};
+                    border: 1px solid {content_border_color};
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin: 8px 0;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #212529;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    height: 150px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                ">{content['text']}</div>
+                """, unsafe_allow_html=True)
                 
                 # 수정 모드 확인
                 if session_state.get(f"editing_{content['id']}", False):
@@ -128,10 +161,16 @@ def create_content_cards(contents: list, session_state: dict):
                     col_save, col_cancel = st.columns([1, 1])
                     with col_save:
                         if st.button("💾 저장", key=f"save_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
+                            # current_generate_id 확인
+                            current_generate_id = session_state.get('current_generate_id')
+                            if not current_generate_id:
+                                st.error("❌ 생성 ID가 없습니다. 페이지를 새로고침해주세요.")
+                                return
+                            
                             # 데이터베이스 업데이트
                             success = update_content_text(
-                                session_state.get('current_generate_id', ''),
-                                content['id'],
+                                current_generate_id,
+                                int(content['id']),
                                 edited_text
                             )
                             
@@ -145,7 +184,7 @@ def create_content_cards(contents: list, session_state: dict):
                                 st.success("원고가 수정되었습니다!")
                                 st.rerun()
                             else:
-                                st.error("수정 중 오류가 발생했습니다.")
+                                st.error(f"수정 중 오류가 발생했습니다. generate_id: {session_state.get('current_generate_id', 'None')}, content_id: {content['id']}")
                     
                     with col_cancel:
                         if st.button("❌ 취소", key=f"cancel_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
@@ -156,24 +195,8 @@ def create_content_cards(contents: list, session_state: dict):
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    # 가독성을 위해 마크다운으로 표시 (고정 높이 + 스크롤)
-                    st.markdown(f"""
-                    <div style="
-                        background-color: #f8f9fa;
-                        border: 1px solid #dee2e6;
-                        border-radius: 8px;
-                        padding: 16px;
-                        margin: 8px 0;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        line-height: 1.6;
-                        color: #212529;
-                        white-space: pre-wrap;
-                        word-wrap: break-word;
-                        height: 150px;
-                        overflow-y: auto;
-                        overflow-x: hidden;
-                    ">{content['text']}</div>
-                    """, unsafe_allow_html=True)
+                    # 원고 내용은 이미 위에서 표시됨 (복사한 톤에 따라 다른 색상)
+                    pass
                 
                 # 액션 버튼 - 붙여서 배치
                 col1, col2 = st.columns([1, 1])
@@ -181,18 +204,25 @@ def create_content_cards(contents: list, session_state: dict):
                     if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
+                            
+                            # 복사한 톤 정보 표시는 제거 (히스토리에서만 표시)
+                            
+                            # tone 변수 정의
+                            tone = content.get('tone', 'Unknown')
+                            current_generate_id = session_state.get('current_generate_id', 'temp_id')
+                            
                             # 기존 copy_action 호출
                             copy_action(
                                 session_state['user_id'],
-                                session_state['current_generate_id'],
+                                current_generate_id,
                                 str(content['id']),
-                                tone=content.get('tone', 'Unknown')
+                                tone=tone
                             )
                             # 채택 기록 저장
                             record_content_adoption(
                                 session_state['user_id'],
-                                str(content['id']),
-                                content.get('tone', 'Unknown')
+                                current_generate_id,
+                                tone
                             )
                         else:
                             show_copy_failure_message()

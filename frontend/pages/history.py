@@ -1,7 +1,22 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from services.user_service import get_user_history
-from database.crud import get_user_contents, get_user_adoption_count, get_user_preferred_tone
+from database.crud import get_user_contents, get_user_adoption_count, get_user_preferred_tone, get_content_adopted_tones
+
+# 한국 시간대 설정
+KST = timezone(timedelta(hours=9))
+
+def format_korean_time(time_str):
+    """데이터베이스 시간을 한국 시간으로 포맷팅합니다."""
+    try:
+        # UTC 시간으로 파싱 (데이터베이스에 저장된 시간이 UTC라고 가정)
+        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+        # 한국 시간으로 변환
+        kst_time = dt.astimezone(KST)
+        return kst_time.strftime("%Y-%m-%d %H:%M")
+    except:
+        # 파싱 실패 시 원본 반환
+        return time_str[:16]
 
 def show_history_page(user_id: str):
     """활동 히스토리 페이지를 표시합니다."""
@@ -127,7 +142,9 @@ def show_history_page(user_id: str):
                 community_icon = community_icons.get(community_display, '🏘️')
                 
                 # 제목 순서 변경: 커뮤니티 → 상품명 → 날짜
-                with st.expander(f"{community_icon} {community_display} | 🛍️ {gen['product_name']} | 📅 {gen['created_at'][:16]}", expanded=False):
+                # 한국 시간으로 포맷팅
+                formatted_time = format_korean_time(gen['created_at'])
+                with st.expander(f"{community_icon} {community_display} | 🛍️ {gen['product_name']} | 📅 {formatted_time}", expanded=False):
                     # 재생성 여부 확인 (generation_type으로 판단)
                     generation_type = gen.get('generation_type', 'viral_copy')
                     is_regenerated = generation_type == 'regenerate'
@@ -153,10 +170,10 @@ def show_history_page(user_id: str):
                             if basic_info_items:
                                 st.markdown(f"""
                                 <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #28a745;">
-                                    <div style="color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem;">
+                                    <div style="color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: bold;">
                                         📝 기본 정보
                                     </div>
-                                    <div style="color: #6c757d; line-height: 1.6;">
+                                    <div style="color: #212529; line-height: 1.6;">
                                         {chr(10).join(basic_info_items)}
                                     </div>
                                 </div>
@@ -178,10 +195,10 @@ def show_history_page(user_id: str):
                             if emphasis_items:
                                 st.markdown(f"""
                                 <div style="background-color: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ffc107;">
-                                    <div style="color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem;">
+                                    <div style="color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: bold;">
                                         ⭐ 강조사항
                                     </div>
-                                    <div style="color: #6c757d; line-height: 1.6;">
+                                    <div style="color: #212529; line-height: 1.6;">
                                         {chr(10).join(emphasis_items)}
                                     </div>
                                 </div>
@@ -191,10 +208,10 @@ def show_history_page(user_id: str):
                             if product_info.get('best_case'):
                                 st.markdown(f"""
                                 <div style="background-color: #d1ecf1; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #17a2b8;">
-                                    <div style="color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem;">
+                                    <div style="color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: bold;">
                                         👍 베스트사례
                                     </div>
-                                    <div style="color: #6c757d; line-height: 1.6; font-style: italic;">
+                                    <div style="color: #212529; line-height: 1.6; font-style: italic;">
                                         "{product_info['best_case']}"
                                     </div>
                                 </div>
@@ -214,19 +231,77 @@ def show_history_page(user_id: str):
                         </div>
                         """, unsafe_allow_html=True)
                         
+                        # 복사한 톤 정보 조회
+                        content_id = gen.get('id', '')
+                        adopted_tones = get_content_adopted_tones(content_id) if content_id else []
+                        
+                        # 불러오기 버튼과 복사한 톤 정보 표시
+                        if adopted_tones:
+                            # 모든 톤 목록 (6개 톤)
+                            all_tones = ['정보전달형', '후기형', '긴급/마감 임박형', '스토리텔링형', '친근한 톤', '유머러스한 형']
+                            
+                            # 각 톤별로 O/X 표시
+                            tone_indicators = []
+                            for tone in all_tones:
+                                if tone in adopted_tones:
+                                    tone_indicators.append(f'<span style="color: #28a745; font-weight: bold;">{tone} ✓</span>')
+                                else:
+                                    tone_indicators.append(f'<span style="color: #6c757d;">{tone} ✗</span>')
+                            
+                            # 2열로 배치
+                            tone_display = '<br>'.join([
+                                '&nbsp;&nbsp;&nbsp;&nbsp;'.join(tone_indicators[:3]),  # 첫 3개
+                                '&nbsp;&nbsp;&nbsp;&nbsp;'.join(tone_indicators[3:])   # 나머지 3개
+                            ])
+                            
+                            st.markdown(f"""
+                            <div style="
+                                background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+                                border: 2px solid #28a745;
+                                border-radius: 12px;
+                                padding: 16px;
+                                margin: 8px 0;
+                                box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+                            ">
+                                <div style="
+                                    color: #155724;
+                                    font-weight: 600;
+                                    font-size: 14px;
+                                    margin-bottom: 8px;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                ">
+                                    <span style="font-size: 18px;">✅</span>
+                                    <span>복사한 톤</span>
+                                </div>
+                                <div style="
+                                    color: #155724;
+                                    font-size: 13px;
+                                    line-height: 1.6;
+                                ">
+                                    {tone_display}
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
                         if st.button(f"📋 불러오기", key=f"load_gen_{start_idx + i}", use_container_width=True):
                             # 해당 생성 결과를 메인 화면에 표시
                             st.session_state.generated_contents = gen.get('generated_contents', [])
+                            st.session_state.current_generate_id = content_id  # generate_id 설정
                             st.session_state.show_results = True
                             st.session_state.current_page = "main"  # 메인 페이지로 이동
                             st.rerun()
                     
-                    # 생성된 원고 4개 모두 표시
+                    # 생성된 원고 6개 모두 표시
                     if gen.get('generated_contents'):
                         st.markdown("### 📝 생성된 원고")
                         for j, content in enumerate(gen['generated_contents']):
                             tone = content.get('tone', f'톤 {j+1}')
                             text = content.get('text', '')
+                            
+                            # 복사한 톤인지 확인
+                            is_adopted = tone in adopted_tones
                             
                             # 톤별 색상 매핑
                             tone_colors = {
@@ -240,12 +315,16 @@ def show_history_page(user_id: str):
                             
                             bg_color = tone_colors.get(tone, '#f8f9fa')
                             
+                            # 복사한 톤이면 테두리 색상과 아이콘 추가
+                            border_color = '#28a745' if is_adopted else '#667eea'
+                            adopted_icon = ' ✅' if is_adopted else ''
+                            
                             st.markdown(f"""
-                            <div style="background-color: {bg_color}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #667eea;">
+                            <div style="background-color: {bg_color}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid {border_color}; {'box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);' if is_adopted else ''}">
                                 <div style="font-weight: bold; color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem;">
-                                    {tone}
+                                    {tone}{adopted_icon}
                                 </div>
-                                <div style="color: #6c757d; line-height: 1.6;">
+                                <div style="color: #212529; line-height: 1.6;">
                                     {text}
                                 </div>
                             </div>

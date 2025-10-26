@@ -1,7 +1,19 @@
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from typing import List, Dict, Any
 from database.connection import Database
+
+# 한국 시간대 설정
+KST = timezone(timedelta(hours=9))
+
+def get_korean_time():
+    """한국 시간을 반환합니다."""
+    return datetime.now(KST)
+
+def get_korean_time_str():
+    """한국 시간을 문자열로 반환합니다."""
+    return get_korean_time().strftime("%Y-%m-%d %H:%M:%S")
 
 # 데이터베이스 테이블 생성
 def create_tables():
@@ -94,7 +106,7 @@ def create_tables():
 def create_user(team_name: str, user_name: str, user_id: str):
     db = Database()
     db.connect()
-    now = datetime.now()
+    now = get_korean_time_str()
     
     db.execute("""
         INSERT INTO users (id, team_name, user_name, created_at)
@@ -143,7 +155,7 @@ def create_user_feedback(user_id: str, feedback: str, rating: int = 5) -> str:
     db = Database()
     db.connect()
     feedback_id = str(uuid.uuid4())
-    now = datetime.now()
+    now = get_korean_time_str()
     
     db.execute("""
         INSERT INTO user_feedback (id, user_id, feedback, rating, created_at)
@@ -164,7 +176,7 @@ def create_user_input(user_id: str, product_name: str, price: str = None,
     db = Database()
     db.connect()
     input_id = str(uuid.uuid4())
-    now = datetime.now()
+    now = get_korean_time_str()
     
     db.execute("""
         INSERT INTO user_inputs (id, user_id, product_name, price, product_attribute, 
@@ -243,7 +255,7 @@ def create_content(input_id: str, parent_generate_id: str, generation_type: str,
     db = Database()
     db.connect()
     content_id = str(uuid.uuid4())
-    now = datetime.now()
+    now = get_korean_time_str()
     
     db.execute("""
         INSERT INTO contents (id, input_id, parent_generate_id, generation_type, 
@@ -401,7 +413,7 @@ def record_content_adoption(user_id: str, content_id: str, tone: str):
     db.connect()
     
     adoption_id = str(uuid.uuid4())
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = get_korean_time_str()
     
     db.execute("""
         INSERT INTO content_adoptions (id, user_id, content_id, tone, created_at)
@@ -458,6 +470,28 @@ def get_user_preferred_tone(user_id: str):
     except Exception as e:
         print(f"Error retrieving preferred tone: {e}")
         return None
+    finally:
+        db.close()
+
+def get_content_adopted_tones(content_id: str) -> List[str]:
+    """특정 콘텐츠에서 복사한 톤들을 조회"""
+    db = Database()
+    db.connect()
+    
+    try:
+        cursor = db.execute("""
+            SELECT DISTINCT tone
+            FROM content_adoptions
+            WHERE content_id = ?
+            ORDER BY tone
+        """, (content_id,))
+        
+        results = cursor.fetchall()
+        return [row[0] for row in results]
+        
+    except Exception as e:
+        print(f"Error retrieving adopted tones for content {content_id}: {e}")
+        return []
     finally:
         db.close()
 

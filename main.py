@@ -145,6 +145,8 @@ if 'emphasis_details' not in st.session_state:
     st.session_state.emphasis_details = []
 if 'content_history' not in st.session_state:
     st.session_state.content_history = []
+if 'current_generate_id' not in st.session_state:
+    st.session_state.current_generate_id = None
 
 def main():
     # 사용자 로그인 확인

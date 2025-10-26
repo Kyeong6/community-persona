@@ -202,9 +202,13 @@ def show_input_form():
                             product_data=product_data
                         )
                         
+                        # 디버깅: 결과 확인
+                        st.write(f"Debug - result: {result}")
+                        
                         if result and result.get("generate_id"):
                             st.session_state.generated_contents = result["generated_contents"]
                             st.session_state.current_generate_id = result.get("generate_id", "temp_id")
+                            st.session_state.show_results = True
                             
                             # 현재 입력 정보를 세션에 저장 (입력 화면으로 돌아갈 때 사용)
                             st.session_state.last_input_data = {
