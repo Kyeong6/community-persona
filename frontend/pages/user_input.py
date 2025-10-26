@@ -165,7 +165,7 @@ def show_input_form():
             "✨ 원고 생성하기",
             type="primary",
             use_container_width=True,
-            help="입력한 정보를 바탕으로 4개의 다른 톤의 원고를 생성합니다"
+            help="입력한 정보를 바탕으로 6개의 다른 톤의 원고를 생성합니다"
         ):
             is_valid, error_msg = validate_input_form(product_name, community)
             if is_valid:

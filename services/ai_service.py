@@ -110,11 +110,23 @@ class AIService:
                     tone_mapping = {
                         'information': '정보전달형',
                         'review': '후기형', 
-                        'humorous': '유머러스한 형',
-                        'friendly': '친근한 톤'
+                        'urgent': '긴급/마감 임박형',
+                        'storytelling': '스토리텔링형',
+                        'friendly': '친근한 톤',
+                        'humorous': '유머러스한 형'
                     }
                     
-                    for i, (key, tone_name) in enumerate(tone_mapping.items(), 1):
+                    # 원하는 순서로 톤 처리
+                    tone_order = [
+                        ('information', '정보전달형'),
+                        ('review', '후기형'),
+                        ('urgent', '긴급/마감 임박형'),
+                        ('storytelling', '스토리텔링형'),
+                        ('friendly', '친근한 톤'),
+                        ('humorous', '유머러스한 형')
+                    ]
+                    
+                    for i, (key, tone_name) in enumerate(tone_order, 1):
                         if key in parsed_content and 'content' in parsed_content[key]:
                             generated_contents.append({
                                 'id': i,

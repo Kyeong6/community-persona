@@ -80,16 +80,32 @@ def format_attributes(attributes: dict) -> str:
 
 # 콘텐츠 카드 생성
 def create_content_cards(contents: list, session_state: dict):
-    cols = st.columns(2)
+    cols = st.columns(3)
     
     for i, content in enumerate(contents):
-        with cols[i % 2]:
+        with cols[i % 3]:
             # 카드 컨테이너
             with st.container():
-                # 헤더
+                # 헤더와 설명
+                tone_descriptions = {
+                    '정보전달형': '상품의 <strong style="color: #1f40af;">최종 가격 조건과 핵심 스펙</strong>만 빠르고 객관적으로 요약하여 전달',
+                    '후기형': '직접 써본 경험과 <strong style="color: #1f40af;">솔직한 만족도</strong>를 공유해 구매를 망설이는 잠재 고객을 설득',
+                    '유머러스한 형': '<strong style="color: #1f40af;">밈, 위트</strong>를 활용해 게시물의 재미를 높여 젊은 층의 관심과 공유를 유도',
+                    '친근한 톤': '경험과 고민을 언급하며 사용자들과 친밀하게 소통하고 <strong style="color: #1f40af;">부드럽게 상품을 추천</strong>',
+                    '긴급/마감 임박형': '<strong style="color: #1f40af;">한정 수량, 마감 임박, 역대 최저가</strong>를 강조하여 고객의 구매 행동을 이끌어냄',
+                    '스토리텔링형': '<strong style="color: #1f40af;">구체적인 일상 에피소드</strong>를 통해 상품의 필요성과 구매 당위성을 강조'
+                }
+                
+                description = tone_descriptions.get(content['tone'], '')
+                
                 st.markdown(f"""
-                <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">
-                    {content['tone']}
+                <div style="margin-bottom: 8px;">
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #1f2937;">
+                        {content['tone']}
+                    </div>
+                    <div style="font-size: 12px; color: #4b5563; line-height: 1.5; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border-left: 4px solid #3b82f6; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+                        {description}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -140,7 +156,7 @@ def create_content_cards(contents: list, session_state: dict):
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    # 가독성을 위해 마크다운으로 표시
+                    # 가독성을 위해 마크다운으로 표시 (고정 높이 + 스크롤)
                     st.markdown(f"""
                     <div style="
                         background-color: #f8f9fa;
@@ -153,17 +169,16 @@ def create_content_cards(contents: list, session_state: dict):
                         color: #212529;
                         white-space: pre-wrap;
                         word-wrap: break-word;
+                        height: 150px;
+                        overflow-y: auto;
+                        overflow-x: hidden;
                     ">{content['text']}</div>
                     """, unsafe_allow_html=True)
                 
-                # 액션 버튼 - CSS로 오른쪽 하단에 붙여서 배치
-                st.markdown("""
-                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-                """, unsafe_allow_html=True)
-                
+                # 액션 버튼 - 붙여서 배치
                 col1, col2 = st.columns([1, 1])
                 with col1:
-                    if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
+                    if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
                         if copy_to_clipboard(content['text']):
                             show_copy_success_message()
                             # 기존 copy_action 호출
@@ -183,13 +198,9 @@ def create_content_cards(contents: list, session_state: dict):
                             show_copy_failure_message()
                 
                 with col2:
-                    if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}"):
+                    if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
                         session_state[f"editing_{content['id']}"] = True
                         st.rerun()
-                
-                st.markdown("""
-                </div>
-                """, unsafe_allow_html=True)
                 
                 st.markdown("")  # 간격
 

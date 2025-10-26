@@ -26,15 +26,27 @@ def show_sidebar(user_id: str, team_name: str, user_name: str):
         # 네비게이션 섹션
         st.markdown("### 🧭 페이지 이동")
         
-        # 활동 히스토리 버튼
-        if st.button("📊 활동 히스토리", use_container_width=True):
-            st.session_state.current_page = "history"
-            st.rerun()
+        # 현재 페이지 확인
+        current_page = st.session_state.get('current_page', 'main')
         
-        # 커뮤니티별 베스트 사례 버튼
-        if st.button("🏘️ 커뮤니티별 베스트 사례", use_container_width=True):
-            st.session_state.current_page = "community_cases"
-            st.rerun()
+        # 상품 정보 기입 페이지 (메인)
+        if current_page != 'main':
+            if st.button("📝 상품 정보 기입", use_container_width=True):
+                st.session_state.current_page = "main"
+                st.session_state.show_results = False
+                st.rerun()
+        
+        # 활동 히스토리 페이지
+        if current_page != 'history':
+            if st.button("📊 활동 히스토리", use_container_width=True):
+                st.session_state.current_page = "history"
+                st.rerun()
+        
+        # 커뮤니티별 베스트 사례 페이지
+        if current_page != 'community_cases':
+            if st.button("🏘️ 커뮤니티별 베스트 사례", use_container_width=True):
+                st.session_state.current_page = "community_cases"
+                st.rerun()
         
         st.divider()
         
