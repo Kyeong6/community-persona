@@ -151,77 +151,7 @@ def show_community_cases_page(user_id: str):
     </style>
     """, unsafe_allow_html=True)
     
-    # 사이드바 네비게이션
-    with st.sidebar:
-        # 사용자 정보
-        st.markdown("### 👤 사용자 정보")
-        st.markdown(f"**팀:** {st.session_state.get('team_name', '')}")
-        st.markdown(f"**사용자:** {st.session_state.get('user_name', '')}")
-        
-        # 로그아웃 버튼
-        if st.button("🚪 로그아웃", key="community_logout"):
-            # 세션 상태 초기화
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
-        
-        st.divider()
-        
-        # 페이지 이동 버튼들
-        st.markdown("### 🧭 페이지 이동")
-        
-        # 메인 화면 버튼
-        if st.button("🏠 상품 정보 기입", use_container_width=True, key="community_to_main"):
-            st.session_state.current_page = "main"
-            st.session_state.show_results = False
-            st.rerun()
-        
-        # 활동 히스토리 버튼
-        if st.button("📊 활동 히스토리", use_container_width=True, key="community_to_history"):
-            st.session_state.current_page = "history"
-            st.rerun()
-        
-        st.divider()
-        
-        # 피드백 섹션 (맨 아래로 이동)
-        st.markdown("### 💬 피드백")
-        
-        # 피드백 전송 성공 메시지 표시
-        if hasattr(st.session_state, 'feedback_sent_community') and st.session_state.feedback_sent_community:
-            col1, col2 = st.columns([5, 1])
-            with col1:
-                st.success("🎉 피드백이 전송되었습니다!")
-            with col2:
-                if st.button("✕", key="close_feedback_community", help="메시지 닫기", use_container_width=True):
-                    st.session_state.feedback_sent_community = False
-                    st.rerun()
-        
-        feedback_text = st.text_area(
-            "서비스 개선을 위한 피드백을 남겨주세요!",
-            placeholder="개선사항이나 의견을 자유롭게 작성해주세요",
-            height=100,
-            help="여러분의 소중한 의견이 더 나은 서비스로 이어집니다😄",
-            key="community_feedback_text"
-        )
-        
-        if st.button("📝 피드백 전송", use_container_width=True, key="community_feedback"):
-            if feedback_text.strip():
-                try:
-                    from services import user_feedback
-                    feedback_result = user_feedback(
-                        user_id=user_id,
-                        feedback_text=feedback_text
-                    )
-                    
-                    if feedback_result:
-                        st.session_state.feedback_sent_community = True
-                        st.rerun()
-                    else:
-                        st.error("피드백 전송에 실패했습니다.")
-                except Exception as e:
-                    st.error(f"피드백 전송 중 오류가 발생했습니다: {str(e)}")
-            else:
-                st.warning("피드백 내용을 입력해주세요")
+    # 사이드바는 main.py에서 통합 관리하므로 제거
     
     # 메인 콘텐츠
     # 뒤로가기 버튼과 제목을 같은 줄에 배치

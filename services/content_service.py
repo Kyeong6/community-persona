@@ -103,10 +103,10 @@ def copy_action(user_id: str, generate_id: str, version_id: str, tone: str = Non
     return True
 
 # 피드백 수집
-def user_feedback(user_id: str, feedback_text: str) -> bool:
+def user_feedback(user_id: str, feedback_text: str, rating: int = 5) -> bool:
     try:
-        feedback_id = create_user_feedback(user_id, feedback_text)
-        logger.info(f"[user_feedback] Feedback submitted: user_id={user_id}")
+        feedback_id = create_user_feedback(user_id, feedback_text, rating)
+        logger.info(f"[user_feedback] Feedback submitted: user_id={user_id}, rating={rating}")
         return bool(feedback_id)
     except Exception as e:
         logger.error(f"[user_feedback] Error submitting feedback: user_id={user_id}, error={str(e)}")

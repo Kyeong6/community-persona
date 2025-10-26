@@ -155,13 +155,12 @@ def main():
     # 현재 페이지 확인
     current_page = st.session_state.get('current_page', 'main')
     
-    # 사이드바 표시 (메인 페이지에서만)
-    if current_page == 'main':
-        show_sidebar(
-            st.session_state.user_id, 
-            st.session_state.team_name, 
-            st.session_state.user_name
-        )
+    # 사이드바 표시 (모든 페이지에서)
+    show_sidebar(
+        st.session_state.user_id, 
+        st.session_state.team_name, 
+        st.session_state.user_name
+    )
     
     # 콘텐츠 이력 표시 (제거됨)
     # show_content_history(st.session_state.user_id)

@@ -25,10 +25,18 @@ def create_tables():
             id TEXT PRIMARY KEY NOT NULL,
             user_id TEXT NOT NULL,
             feedback TEXT NOT NULL,
+            rating INTEGER DEFAULT 5,
             created_at DATETIME NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    
+    # 기존 테이블에 rating 컬럼 추가 (이미 존재하면 무시됨)
+    try:
+        db.execute("ALTER TABLE user_feedback ADD COLUMN rating INTEGER DEFAULT 5")
+    except:
+        # 컬럼이 이미 존재하는 경우 무시
+        pass
 
     # 사용자 입력 정보 테이블
     db.execute("""
@@ -131,16 +139,16 @@ def get_user_by_team_and_name(team_name: str, user_name: str):
 
 
 # 사용자 피드백 생성
-def create_user_feedback(user_id: str, feedback: str) -> str:
+def create_user_feedback(user_id: str, feedback: str, rating: int = 5) -> str:
     db = Database()
     db.connect()
     feedback_id = str(uuid.uuid4())
     now = datetime.now()
     
     db.execute("""
-        INSERT INTO user_feedback (id, user_id, feedback, created_at)
-        VALUES (?, ?, ?, ?)
-    """, (feedback_id, user_id, feedback, now))
+        INSERT INTO user_feedback (id, user_id, feedback, rating, created_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (feedback_id, user_id, feedback, rating, now))
     
     db.commit()
     db.close()
