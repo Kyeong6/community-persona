@@ -20,7 +20,7 @@ def parse_log_file(log_file_path="logs/info.log"):
     with open(log_file_path, 'r', encoding='utf-8') as f:
         for line in f:
             # 사용자 행동 로그만 추출
-            if any(action in line for action in ['COPY_ACTION', 'GENERATE_ACTION', 'EDIT_START', 'EDIT_COMPLETE', 'REGENERATE_ACTION', 'LOAD_FROM_HISTORY', 'BEST_CASE_APPLY', 'FEEDBACK_SUBMIT']):
+            if any(action in line for action in ['COPY_ACTION', 'GENERATE_ACTION', 'EDIT_START', 'EDIT_COMPLETE', 'REGENERATE_ACTION', 'LOAD_FROM_HISTORY', 'BEST_CASE_APPLY', 'FEEDBACK_SUBMIT', 'FORM_RESET']):
                 logs.append(line.strip())
     
     return logs
@@ -73,6 +73,8 @@ def analyze_logs(logs, days=7):
             action_counts['베스트사례적용'] += 1
         elif 'FEEDBACK_SUBMIT' in log:
             action_counts['피드백제출'] += 1
+        elif 'FORM_RESET' in log:
+            action_counts['폼초기화'] += 1
         
         # 사용자 ID 추출
         user_match = re.search(r'user_id: ([a-f0-9-]+)', log)

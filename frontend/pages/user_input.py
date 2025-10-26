@@ -43,6 +43,7 @@ def show_input_form():
     
     # 기본 정보
     st.subheader("📝 기본 정보")
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -149,7 +150,7 @@ def show_input_form():
         "베스트 사례 원고",
         value=best_case_value,
         placeholder="좋은 반응을 얻었던 원고 문구나 표현 방식을 자유롭게 입력하세요",
-        height=200,
+        height=200
     )
     
     # 베스트 사례가 적용된 경우 표시
@@ -206,9 +207,6 @@ def show_input_form():
                             product_data=product_data
                         )
                         
-                        # 디버깅: 결과 확인
-                        st.write(f"Debug - result: {result}")
-                        
                         if result and result.get("generate_id"):
                             st.session_state.generated_contents = result["generated_contents"]
                             st.session_state.current_generate_id = result.get("generate_id", "temp_id")
@@ -232,7 +230,6 @@ def show_input_form():
                             }
                             
                             st.session_state.show_results = True
-                            st.success("원고 생성이 완료되었습니다! 🎉")
                             st.rerun()
                         else:
                             st.error(f"원고 생성에 실패했습니다: {result.get('error', '알 수 없는 오류')}")
