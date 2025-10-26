@@ -98,6 +98,18 @@ def create_tables():
         )
     """)
 
+    # 피드백 테이블
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS feedbacks (
+            id TEXT PRIMARY KEY NOT NULL,
+            user_id TEXT NOT NULL,
+            feedback_text TEXT,
+            rating INTEGER NOT NULL,
+            created_at DATETIME NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
     db.commit()
     db.close()
 
@@ -512,8 +524,8 @@ def get_user_feedbacks(user_id: str, limit: int = 10):
     
     try:
         cursor = db.execute("""
-            SELECT id, feedback_text, feedback_type, created_at
-            FROM user_feedback
+            SELECT id, feedback_text, rating, created_at
+            FROM feedbacks
             WHERE user_id = ?
             ORDER BY created_at DESC
             LIMIT ?
@@ -526,7 +538,7 @@ def get_user_feedbacks(user_id: str, limit: int = 10):
             feedbacks.append({
                 "id": row[0],
                 "feedback_text": row[1],
-                "feedback_type": row[2],
+                "rating": row[2],
                 "created_at": row[3]
             })
         

@@ -1,7 +1,11 @@
 import streamlit as st
 
 from services import regenerate_copy, user_feedback
+from utils.get_logger import get_logger
 from ..components.ui_helpers import create_content_cards
+
+# 로거 초기화
+logger = get_logger()
 
 
 def show_results_screen():
@@ -60,6 +64,9 @@ def show_results_screen():
             if st.button("재생성", type="primary", use_container_width=True):
                 if regenerate_reason.strip():
                     try:
+                        # 재생성 행동 로그 기록
+                        logger.info(f"REGENERATE_ACTION - user_id: {st.session_state.user_id}, content_id: {st.session_state.current_generate_id}, community: {st.session_state.get('selected_community', 'unknown')}, product_name: {st.session_state.get('last_input_data', {}).get('product_name', 'unknown')}")
+                        
                         # 로딩 위젯 표시
                         with st.spinner("🔄 문구를 재생성하고 있습니다..."):
                             # 백엔드 재생성 서비스 호출

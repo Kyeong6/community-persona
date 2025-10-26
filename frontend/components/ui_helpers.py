@@ -4,6 +4,10 @@ import platform
 
 from services import copy_action
 from database.crud import record_content_adoption, update_content_text, get_content_adopted_tones
+from utils.get_logger import get_logger
+
+# 로거 초기화
+logger = get_logger()
 
 # 성공 메시지 표시
 def show_success_message(message: str):
@@ -181,6 +185,10 @@ def create_content_cards(contents: list, session_state: dict):
                                         session_state['generated_contents'][j]['text'] = edited_text
                                         break
                                 session_state[f"editing_{content['id']}"] = False
+                                
+                                # 수정 완료 로그
+                                logger.info(f"EDIT_COMPLETE - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {content.get('tone', 'Unknown')}")
+                                
                                 st.success("원고가 수정되었습니다!")
                                 st.rerun()
                             else:
@@ -224,11 +232,16 @@ def create_content_cards(contents: list, session_state: dict):
                                 current_generate_id,
                                 tone
                             )
+                            
+                            # 복사 행동 로그 기록
+                            logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
                         else:
                             show_copy_failure_message()
                 
                 with col2:
                     if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
+                        # 수정 시작 로그
+                        logger.info(f"EDIT_START - user_id: {session_state['user_id']}, content_id: {session_state.get('current_generate_id', 'temp_id')}, tone: {content.get('tone', 'Unknown')}")
                         session_state[f"editing_{content['id']}"] = True
                         st.rerun()
                 

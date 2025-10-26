@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
+from utils.get_logger import get_logger
+
+# 로거 초기화
+logger = get_logger()
 
 def load_community_data():
     """커뮤니티 데이터를 로드하고 분석합니다."""
@@ -12,6 +17,10 @@ def load_community_data():
         df['view_cnt'] = pd.to_numeric(df['view_cnt'], errors='coerce').fillna(0)
         df['like_cnt'] = pd.to_numeric(df['like_cnt'], errors='coerce').fillna(0)
         df['comment_cnt'] = pd.to_numeric(df['comment_cnt'], errors='coerce').fillna(0)
+        
+        # 날짜 컬럼 변환 및 주차 계산
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        df['week'] = df['created_at'].apply(get_week_number)
         
         # 종합 지표 계산 (가중 평균)
         # 조회수 40%, 좋아요 35%, 댓글수 25% 가중치 적용
@@ -26,9 +35,37 @@ def load_community_data():
         st.error(f"데이터 로드 중 오류가 발생했습니다: {e}")
         return pd.DataFrame()
 
-def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=10):
+def get_week_number(date):
+    """날짜를 기반으로 주차를 계산합니다."""
+    try:
+        # 10월 13일을 기준으로 주차 계산
+        oct_13 = datetime(2025, 10, 13)
+        
+        if date < oct_13:
+            return "10월 2주차 이전"
+        elif oct_13 <= date < datetime(2025, 10, 20):
+            return "10월 3주차"
+        elif datetime(2025, 10, 20) <= date < datetime(2025, 10, 27):
+            return "10월 4주차"
+        else:
+            return "10월 5주차 이후"
+    except:
+        return "알 수 없음"
+
+def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=100, week_filter=None, category_filter=None):
     """커뮤니티별 상위 사례를 반환합니다."""
     community_data = df[df['channel'] == community].copy()
+    
+    if community_data.empty:
+        return pd.DataFrame()
+    
+    # 주차 필터링
+    if week_filter and week_filter != "전체":
+        community_data = community_data[community_data['week'] == week_filter]
+    
+    # 카테고리 필터링
+    if category_filter and category_filter != "전체":
+        community_data = community_data[community_data['category'] == category_filter]
     
     if community_data.empty:
         return pd.DataFrame()
@@ -60,29 +97,92 @@ def show_community_tab(df, channel, display_name):
         '💬 댓글수': 'comment_cnt'
     }
     
-    # 정렬 기준 선택 UI
-    col1, col2 = st.columns([2, 1])
+    # 필터링 옵션
+    community_data = df[df['channel'] == channel]
+    
+    # 주차 옵션
+    week_options = ["전체"] + sorted(community_data['week'].unique().tolist())
+    
+    # 카테고리 옵션
+    category_options = ["전체"] + sorted(community_data['category'].unique().tolist())
+    
+    # 필터링 UI
+    st.markdown(f"### {display_name}")
+    
+    # 필터링 컨트롤
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     
     with col1:
-        st.markdown(f"### {display_name}")
+        week_filter = st.selectbox(
+            "📅 주차:",
+            options=week_options,
+            index=0,
+            key=f"week_{channel}"
+        )
     
     with col2:
+        category_filter = st.selectbox(
+            "🏷️ 카테고리:",
+            options=category_options,
+            index=0,
+            key=f"category_{channel}"
+        )
+    
+    with col3:
         sort_by = st.selectbox(
-            "정렬 기준:",
+            "📊 정렬 기준:",
             options=list(sort_options.keys()),
-            index=0,  # 기본값: 종합지표
+            index=0,
             key=f"sort_{channel}"
         )
     
-    # 선택된 정렬 기준으로 데이터 가져오기
+    with col4:
+        # 필터링된 데이터 개수 표시
+        filtered_data = community_data.copy()
+        if week_filter != "전체":
+            filtered_data = filtered_data[filtered_data['week'] == week_filter]
+        if category_filter != "전체":
+            filtered_data = filtered_data[filtered_data['category'] == category_filter]
+        
+        st.metric("📈 총 사례 수", f"{len(filtered_data)}개")
+    
+    # 선택된 정렬 기준으로 데이터 가져오기 (최대 100개)
     sort_key = sort_options[sort_by]
-    top_cases = get_top_cases_by_community(df, channel, sort_key, 10)
+    top_cases = get_top_cases_by_community(df, channel, sort_key, 100, week_filter, category_filter)
     
     if top_cases.empty:
-        st.warning(f"{display_name} 데이터가 없습니다.")
+        # 필터링 조건에 따른 메시지
+        filter_msg = []
+        if week_filter != "전체":
+            filter_msg.append(f"주차: {week_filter}")
+        if category_filter != "전체":
+            filter_msg.append(f"카테고리: {category_filter}")
+        
+        if filter_msg:
+            st.warning(f"선택한 조건 ({', '.join(filter_msg)})에 해당하는 {display_name} 데이터가 없습니다.")
+        else:
+            st.warning(f"{display_name} 데이터가 없습니다.")
         return
     
-    for idx, (_, case) in enumerate(top_cases.iterrows(), 1):
+    # 페이지네이션 설정
+    items_per_page = 10
+    total_items = len(top_cases)
+    total_pages = (total_items + items_per_page - 1) // items_per_page
+    
+    # 현재 페이지 상태 초기화
+    if f'current_page_{channel}' not in st.session_state:
+        st.session_state[f'current_page_{channel}'] = 1
+    
+    # 현재 페이지에 해당하는 데이터 추출
+    current_page = st.session_state[f'current_page_{channel}']
+    start_idx = (current_page - 1) * items_per_page
+    end_idx = min(start_idx + items_per_page, total_items)
+    current_cases = top_cases.iloc[start_idx:end_idx]
+    
+    # 현재 페이지 정보 표시
+    st.info(f"📊 총 {total_items}개 사례 중 {start_idx + 1}-{end_idx}번째 사례를 표시합니다.")
+    
+    for idx, (_, case) in enumerate(current_cases.iterrows(), start_idx + 1):
         with st.expander(f"#{idx} {case['title'][:50]}{'...' if len(case['title']) > 50 else ''}", expanded=False):
             # 기본 정보와 베스트 사례 적용 버튼을 같은 행에 배치
             col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
@@ -115,6 +215,9 @@ def show_community_tab(df, channel, display_name):
                 
                 with col_confirm1:
                     if st.button("✅ 확인", key=f"confirm_apply_{channel}_{idx}", use_container_width=True, type="primary"):
+                        # 베스트 사례 적용 로그 기록
+                        logger.info(f"BEST_CASE_APPLY - user_id: {st.session_state.user_id}, case_id: {str(case.get('id', idx))}, community: {channel}")
+                        
                         # 베스트 사례를 세션에 저장하고 메인 페이지로 이동
                         st.session_state.best_case = case['content']
                         st.session_state.current_page = "main"
@@ -132,12 +235,60 @@ def show_community_tab(df, channel, display_name):
             
             # 제목과 내용
             st.markdown(f"**제목:** {case['title']}")
-            st.markdown(f"**카테고리:** {case['category']}")
-            st.markdown(f"**작성일:** {case['created_at']}")
+            
+            # 카테고리와 주차 정보를 같은 행에 표시
+            col_info1, col_info2 = st.columns(2)
+            with col_info1:
+                st.markdown(f"**카테고리:** {case['category']}")
+            with col_info2:
+                st.markdown(f"**주차:** {case['week']}")
+            
+            st.markdown(f"**작성일:** {case['created_at'].strftime('%Y-%m-%d %H:%M')}")
             
             # 전체 내용 표시 (미리보기 제거하고 전체 내용을 바로 표시)
             st.markdown("**내용:**")
             st.markdown(f"```\n{case['content']}\n```")
+    
+    # 페이지네이션 컨트롤 (히스토리 화면과 동일한 구조)
+    if total_pages > 1:
+        st.markdown("---")
+        
+        # 페이지네이션을 중앙 정렬된 컨테이너로 표시
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem 0;">
+            <span style="padding: 0.5rem 1rem; font-weight: bold; color: #495057; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6;">
+                페이지 {st.session_state[f'current_page_{channel}']} / {total_pages}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 버튼들을 중앙 정렬
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+        
+        with col1:
+            if st.button("⏮️ 처음", key=f"first_{channel}", help="첫 페이지로 이동", use_container_width=True):
+                st.session_state[f'current_page_{channel}'] = 1
+                st.rerun()
+        
+        with col2:
+            if st.button("◀️ 이전", key=f"prev_{channel}", help="이전 페이지로 이동", use_container_width=True):
+                if st.session_state[f'current_page_{channel}'] > 1:
+                    st.session_state[f'current_page_{channel}'] -= 1
+                    st.rerun()
+        
+        with col3:
+            st.empty()  # 빈 공간
+        
+        with col4:
+            if st.button("다음 ▶️", key=f"next_{channel}", help="다음 페이지로 이동", use_container_width=True):
+                if st.session_state[f'current_page_{channel}'] < total_pages:
+                    st.session_state[f'current_page_{channel}'] += 1
+                    st.rerun()
+        
+        with col5:
+            if st.button("끝 ⏭️", key=f"last_{channel}", help="마지막 페이지로 이동", use_container_width=True):
+                st.session_state[f'current_page_{channel}'] = total_pages
+                st.rerun()
 
 def show_community_cases_page(user_id: str):
     """커뮤니티별 사례 페이지를 표시합니다."""
@@ -179,9 +330,9 @@ def show_community_cases_page(user_id: str):
         return
     
     # 커뮤니티별 베스트 사례
-    st.subheader("🏆 커뮤니티별 베스트 사례 (Top 10)")
+    st.subheader("🏆 커뮤니티별 베스트 사례 (페이지별 10개)")
     
-    # 정렬 기준 설명과 베스트 사례 안내
+    # 필터링 가이드와 베스트 사례 안내
     col1, col2 = st.columns([1, 1])
     
     with col1:
@@ -193,15 +344,15 @@ def show_community_cases_page(user_id: str):
                     margin: 1.5rem 0;
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
                     border: 1px solid #e2e8f0;
-                    height: 240px;
+                    height: 280px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;">
             <div>
                 <h4 style="margin: 0 0 1rem 0; color: #1e293b; font-weight: 600; font-size: 1.1rem;">
-                    📊 정렬 기준
+                    🔍 필터링 옵션
                 </h4>
-                <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; align-items: center;">
                     <span style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); 
                                 color: #1e40af; 
                                 padding: 0.5rem 1rem; 
@@ -210,7 +361,7 @@ def show_community_cases_page(user_id: str):
                                 font-weight: 500;
                                 box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
                                 border: 2px solid #3b82f6;">
-                        📈 종합지표
+                        📅 주차별
                     </span>
                     <span style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); 
                                 color: #7c3aed; 
@@ -220,7 +371,7 @@ def show_community_cases_page(user_id: str):
                                 font-weight: 500;
                                 box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
                                 border: 2px solid #a855f7;">
-                        👍 좋아요/추천
+                        🏷️ 카테고리
                     </span>
                     <span style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); 
                                 color: #166534; 
@@ -230,17 +381,7 @@ def show_community_cases_page(user_id: str):
                                 font-weight: 500;
                                 box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
                                 border: 2px solid #22c55e;">
-                        👀 조회수
-                    </span>
-                    <span style="background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); 
-                                color: #c2410c; 
-                                padding: 0.5rem 1rem; 
-                                border-radius: 20px; 
-                                font-size: 0.9rem; 
-                                font-weight: 500;
-                                box-shadow: 0 2px 4px rgba(194, 65, 12, 0.2);
-                                border: 2px solid #f97316;">
-                        💬 댓글수
+                        📊 정렬기준
                     </span>
                 </div>
             </div>
@@ -264,7 +405,7 @@ def show_community_cases_page(user_id: str):
                     margin: 1.5rem 0;
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
                     border: 1px solid #f59e0b;
-                    height: 240px;
+                    height: 280px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;">
@@ -275,7 +416,7 @@ def show_community_cases_page(user_id: str):
                 <div style="text-align: left; margin-bottom: 0.3rem;">
                     <div style="display: flex; align-items: center; margin-bottom: 0.3rem;">
                         <span style="background: #f59e0b; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.5rem; font-weight: bold;">1</span>
-                        <span style="font-size: 0.8rem; color: #92400e; font-weight: 500;">원하는 사례를 찾아보세요</span>
+                        <span style="font-size: 0.8rem; color: #92400e; font-weight: 500;">필터링으로 원하는 사례 찾기</span>
                     </div>
                     <div style="display: flex; align-items: center; margin-bottom: 0.3rem;">
                         <span style="background: #f59e0b; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.5rem; font-weight: bold;">2</span>
@@ -292,7 +433,7 @@ def show_community_cases_page(user_id: str):
                         border-radius: 8px; 
                         border: 1px solid #f59e0b;">
                 <p style="margin: 0; font-size: 0.85rem; color: #92400e; font-weight: 500;">
-                    ✨ <strong>팁:</strong> 성공한 사례의 문구를 참고하여 더 효과적인 원고를 만들어보세요!
+                    ✨ <strong>팁:</strong> 주차별/카테고리별로 성공 사례를 분석해보세요!
                 </p>
             </div>
         </div>

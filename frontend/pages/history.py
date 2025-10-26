@@ -2,6 +2,10 @@ import streamlit as st
 from datetime import datetime, timezone, timedelta
 from services.user_service import get_user_history
 from database.crud import get_user_contents, get_user_adoption_count, get_user_preferred_tone, get_content_adopted_tones
+from utils.get_logger import get_logger
+
+# 로거 초기화
+logger = get_logger()
 
 # 한국 시간대 설정
 KST = timezone(timedelta(hours=9))
@@ -286,6 +290,10 @@ def show_history_page(user_id: str):
                             """, unsafe_allow_html=True)
                         
                         if st.button(f"📋 불러오기", key=f"load_gen_{start_idx + i}", use_container_width=True):
+                            # 히스토리에서 불러오기 로그 기록
+                            community = gen.get('community') or gen.get('attributes', {}).get('community', 'unknown')
+                            logger.info(f"LOAD_FROM_HISTORY - user_id: {st.session_state.user_id}, content_id: {content_id}, community: {community}")
+                            
                             # 해당 생성 결과를 메인 화면에 표시
                             st.session_state.generated_contents = gen.get('generated_contents', [])
                             st.session_state.current_generate_id = content_id  # generate_id 설정

@@ -2,7 +2,11 @@ import streamlit as st
 
 from services import generate_viral_copy, user_feedback
 from utils.validators import validate_input_form
+from utils.get_logger import get_logger
 from ..components.ui_helpers import show_error_message
+
+# 로거 초기화
+logger = get_logger()
 
 # 입력 폼 표시
 def show_input_form():
@@ -209,6 +213,9 @@ def show_input_form():
                             st.session_state.generated_contents = result["generated_contents"]
                             st.session_state.current_generate_id = result.get("generate_id", "temp_id")
                             st.session_state.show_results = True
+                            
+                            # 생성 행동 로그 기록
+                            logger.info(f"GENERATE_ACTION - user_id: {st.session_state.user_id}, community: {community}, product_name: {product_name}, generation_type: viral_copy")
                             
                             # 현재 입력 정보를 세션에 저장 (입력 화면으로 돌아갈 때 사용)
                             st.session_state.last_input_data = {

@@ -60,7 +60,8 @@ def get_user_history(user_id: str, limit: int = 10):
                 "content_count": len(gen.get("generated_contents", [])),
                 "generated_contents": gen.get("generated_contents", []),  # 전체 데이터 포함
                 "generation_type": gen.get("generation_type", "viral_copy"),  # generation_type 추가
-                "product_info": gen.get("product_info", {})  # product_info 전체 데이터 추가
+                "product_info": gen.get("product_info", {}),  # product_info 전체 데이터 추가
+                "attributes": gen.get("attributes", {})  # attributes 전체 데이터 추가
             })
         
         # 피드백 히스토리 데이터 포맷팅

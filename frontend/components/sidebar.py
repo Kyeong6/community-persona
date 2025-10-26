@@ -2,6 +2,10 @@ import streamlit as st
 from datetime import datetime
 from services.user_service import get_user_history
 from services import user_feedback
+from utils.get_logger import get_logger
+
+# 로거 초기화
+logger = get_logger()
 
 def show_sidebar(user_id: str, team_name: str, user_name: str):
     """
@@ -71,6 +75,7 @@ def show_sidebar(user_id: str, team_name: str, user_name: str):
         
         # 별점 평가
         st.markdown("**⭐ 서비스 만족도**")
+        
         rating = st.select_slider(
             "별점을 선택해주세요",
             options=[1, 2, 3, 4, 5],
@@ -94,6 +99,9 @@ def show_sidebar(user_id: str, team_name: str, user_name: str):
         if st.button("📝 피드백 전송", use_container_width=True):
             if feedback_text.strip() or rating != 5:  # 별점이 5점이 아니거나 텍스트가 있으면 전송
                 try:
+                    # 피드백 제출 로그 기록
+                    logger.info(f"FEEDBACK_SUBMIT - user_id: {user_id}, rating: {rating}, has_feedback_text: {bool(feedback_text.strip())}")
+                    
                     # 별점과 텍스트를 분리해서 전송
                     feedback_result = user_feedback(
                         user_id=user_id,
