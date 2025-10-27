@@ -297,6 +297,7 @@ def show_history_page(user_id: str):
                             # 해당 생성 결과를 메인 화면에 표시
                             st.session_state.generated_contents = gen.get('generated_contents', [])
                             st.session_state.current_generate_id = content_id  # generate_id 설정
+                            st.session_state.selected_community = community  # 커뮤니티 정보 저장
                             st.session_state.show_results = True
                             st.session_state.current_page = "main"  # 메인 페이지로 이동
                             st.rerun()

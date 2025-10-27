@@ -271,8 +271,9 @@ def create_content_cards(contents: list, session_state: dict):
                                 tone
                             )
                             
-                            # 채택 행동 로그 기록
-                            logger.info(f"ADOPT_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
+                            # 채택 행동 로그 기록 (커뮤니티 정보 추출)
+                            community = session_state.get('selected_community') or session_state.get('last_input_data', {}).get('community', 'unknown')
+                            logger.info(f"ADOPT_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {community}")
                             
                             st.success("✅ 채택 완료! 텍스트를 선택하여 복사하세요.")
                             st.rerun()

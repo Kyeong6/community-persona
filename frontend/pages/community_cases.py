@@ -71,16 +71,14 @@ def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=1
         return pd.DataFrame()
     
     # 정렬 기준에 따라 정렬
-    if sort_by == 'composite_score':
-        top_cases = community_data.nlargest(top_n, 'composite_score')
+    if sort_by == 'view_cnt':
+        top_cases = community_data.nlargest(top_n, 'view_cnt')
     elif sort_by == 'like_cnt':
         top_cases = community_data.nlargest(top_n, 'like_cnt')
-    elif sort_by == 'view_cnt':
-        top_cases = community_data.nlargest(top_n, 'view_cnt')
     elif sort_by == 'comment_cnt':
         top_cases = community_data.nlargest(top_n, 'comment_cnt')
     else:
-        top_cases = community_data.nlargest(top_n, 'composite_score')
+        top_cases = community_data.nlargest(top_n, 'view_cnt')  # 기본값을 조회수로 설정
     
     return top_cases
 
@@ -89,13 +87,15 @@ def show_community_tab(df, channel, display_name):
     # 커뮤니티별 좋아요/추천수 표시 설정
     like_label = "👍 좋아요" if channel == "mam2bebe" else "👍 추천수"
     
-    # 정렬 기준 선택
+    # 정렬 기준 선택 (커뮤니티별 기본값 설정)
     sort_options = {
-        '📊 종합지표': 'composite_score',
         like_label: 'like_cnt', 
         '👀 조회수': 'view_cnt',
         '💬 댓글수': 'comment_cnt'
     }
+    
+    # 커뮤니티별 기본 정렬 설정
+    default_sort_index = 1 if channel == "mam2bebe" else 2  # 맘이베베: 조회수, 나머지: 댓글수
     
     # 필터링 옵션
     community_data = df[df['channel'] == channel]
@@ -132,7 +132,7 @@ def show_community_tab(df, channel, display_name):
         sort_by = st.selectbox(
             "📊 정렬 기준:",
             options=list(sort_options.keys()),
-            index=0,
+            index=default_sort_index,
             key=f"sort_{channel}"
         )
     
@@ -349,49 +349,47 @@ def show_community_cases_page(user_id: str):
                     flex-direction: column;
                     justify-content: space-between;">
             <div>
-                <h4 style="margin: 0 0 1rem 0; color: #1e293b; font-weight: 600; font-size: 1.1rem;">
+                <h4 style="margin: 0 0 1rem 0; color: #1e293b; font-weight: 600; font-size: 1.5rem;">
                     🔍 필터링 옵션
                 </h4>
-                <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; align-items: center;">
+                <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 1.5rem; margin-top: 3rem; align-items: center;">
                     <span style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); 
                                 color: #1e40af; 
-                                padding: 0.5rem 1rem; 
+                                padding: 0.75rem 1.25rem; 
                                 border-radius: 20px; 
-                                font-size: 0.9rem; 
-                                font-weight: 500;
+                                font-size: 1rem; 
+                                font-weight: 600;
                                 box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
-                                border: 2px solid #3b82f6;">
+                                border: 2px solid #3b82f6;
+                                flex: 1;
+                                text-align: center;">
                         📅 주차별
                     </span>
                     <span style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); 
                                 color: #7c3aed; 
-                                padding: 0.5rem 1rem; 
+                                padding: 0.75rem 1.25rem; 
                                 border-radius: 20px; 
-                                font-size: 0.9rem; 
-                                font-weight: 500;
+                                font-size: 1rem; 
+                                font-weight: 600;
                                 box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
-                                border: 2px solid #a855f7;">
+                                border: 2px solid #a855f7;
+                                flex: 1;
+                                text-align: center;">
                         🏷️ 카테고리
                     </span>
                     <span style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); 
                                 color: #166534; 
-                                padding: 0.5rem 1rem; 
+                                padding: 0.75rem 1.25rem; 
                                 border-radius: 20px; 
-                                font-size: 0.9rem; 
-                                font-weight: 500;
+                                font-size: 1rem; 
+                                font-weight: 600;
                                 box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
-                                border: 2px solid #22c55e;">
+                                border: 2px solid #22c55e;
+                                flex: 1;
+                                text-align: center;">
                         📊 정렬기준
                     </span>
                 </div>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.8); 
-                        padding: 0.75rem; 
-                        border-radius: 8px; 
-                        border: 1px solid #e2e8f0;">
-                <p style="margin: 0; font-size: 0.85rem; color: #64748b; font-weight: 500;">
-                    💡 <strong>종합지표</strong> = 조회수 40% + 좋아요 35% + 댓글수 25%
-                </p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -410,7 +408,7 @@ def show_community_cases_page(user_id: str):
                     flex-direction: column;
                     justify-content: space-between;">
             <div>
-                <h4 style="margin: 0 0 1rem 0; color: #92400e; font-weight: 600; font-size: 1.1rem;">
+                <h4 style="margin: 0 0 1rem 0; color: #92400e; font-weight: 600; font-size: 1.5rem;">
                     🎯 베스트 사례 활용법
                 </h4>
                 <div style="text-align: left; margin-bottom: 0.3rem;">
