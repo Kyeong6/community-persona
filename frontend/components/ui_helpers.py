@@ -140,25 +140,49 @@ def create_content_cards(contents: list, session_state: dict):
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # 원고 내용 - 복사 가능한 텍스트 영역으로 표시
+                # 원고 내용 - 채택 여부에 따라 배경색 변경
+                current_generate_id = session_state.get('current_generate_id', 'default')
                 content_bg_color = '#e8f5e8' if is_adopted else '#f8f9fa'
                 content_border_color = '#28a745' if is_adopted else '#dee2e6'
                 
-                # 텍스트를 선택 가능하게 표시 (복사 쉬움)
-                st.text_area(
-                    "", 
-                    value=content['text'], 
-                    height=150, 
-                    key=f"content_{content['id']}",
-                    disabled=True,
-                    label_visibility="collapsed"
-                )
+                # 수정 모드가 아니면 표시
+                if not session_state.get(f"editing_{content['id']}", False):
+                    # 수정 모드가 아니고 세션에 업데이트된 텍스트가 있으면 그것을 사용
+                    display_text = content['text']
+                    for c in session_state.get('generated_contents', []):
+                        if c['id'] == content['id']:
+                            display_text = c.get('text', content['text'])
+                            break
+                    
+                    # 채택된 톤은 다른 배경색으로 표시 (선택 가능하게)
+                    if is_adopted:
+                        st.markdown(f"""
+                        <div style="background-color: {content_bg_color}; border: 2px solid {content_border_color}; border-radius: 8px; padding: 12px; margin: 8px 0; cursor: text;">
+                            <pre style="margin: 0; font-family: inherit; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.6; color: #212529; user-select: all;">{display_text}</pre>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.text_area(
+                            "", 
+                            value=display_text, 
+                            height=150, 
+                            key=f"content_{current_generate_id}_{content['id']}",
+                            disabled=False,
+                            label_visibility="collapsed"
+                        )
                 
                 # 수정 모드 확인
                 if session_state.get(f"editing_{content['id']}", False):
+                    # 세션에서 현재 텍스트 가져오기 (업데이트된 텍스트 포함)
+                    current_text = content['text']
+                    for c in session_state.get('generated_contents', []):
+                        if c['id'] == content['id']:
+                            current_text = c.get('text', content['text'])
+                            break
+                    
                     edited_text = st.text_area(
                         "원고 수정",
-                        value=content['text'],
+                        value=current_text,
                         height=200,
                         key=f"edit_content_{session_state.get('current_generate_id', 'default')}_{content['id']}"
                     )
