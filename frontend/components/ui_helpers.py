@@ -250,66 +250,32 @@ def create_content_cards(contents: list, session_state: dict):
                     # 원고 내용은 이미 위에서 표시됨 (복사한 톤에 따라 다른 색상)
                     pass
                 
-                # 액션 버튼 - OS별로 다른 버튼 표시
-                # 윈도우 환경 감지
-                is_windows = platform.system() == "Windows"
-                
+                # 액션 버튼 - 모든 OS에서 채택 버튼 사용
                 col1, col2 = st.columns([1, 1])
                 with col1:
-                    if not is_windows:
-                        # macOS/Linux: 복사 버튼 (자동 복사 가능)
-                        if is_adopted:
-                            st.button("✅ 복사됨", key=f"copied_{session_state.get('current_generate_id', 'default')}_{content['id']}", 
-                                     disabled=True, use_container_width=True,
-                                     help="이 톤은 이미 복사되었습니다")
-                        else:
-                            if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
-                                # 자동 복사 시도
-                                copy_success = copy_to_clipboard(content['text'])
-                                
-                                # tone 변수 정의
-                                tone = content.get('tone', 'Unknown')
-                                current_generate_id = session_state.get('current_generate_id', 'temp_id')
-                                
-                                # 채택 기록 저장
-                                record_content_adoption(
-                                    session_state['user_id'],
-                                    current_generate_id,
-                                    tone
-                                )
-                                
-                                # 복사 행동 로그 기록
-                                logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
-                                
-                                if copy_success:
-                                    st.success("✅ 복사 완료!")
-                                else:
-                                    st.info("💡 텍스트를 선택한 후 **Cmd+C**로 복사하세요.")
-                                st.rerun()
+                    # 이미 채택된 톤이면 "채택됨" 표시, 아니면 "채택" 버튼
+                    if is_adopted:
+                        st.button("✅ 채택됨", key=f"adopted_{session_state.get('current_generate_id', 'default')}_{content['id']}", 
+                                 disabled=True, use_container_width=True,
+                                 help="이 톤은 이미 채택되었습니다")
                     else:
-                        # Windows: 채택 버튼 (복사 안내만)
-                        if is_adopted:
-                            st.button("✅ 채택됨", key=f"adopted_{session_state.get('current_generate_id', 'default')}_{content['id']}", 
-                                     disabled=True, use_container_width=True,
-                                     help="이 톤은 이미 채택되었습니다")
-                        else:
-                            if st.button(f"📝 채택", key=f"adopt_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
-                                # tone 변수 정의
-                                tone = content.get('tone', 'Unknown')
-                                current_generate_id = session_state.get('current_generate_id', 'temp_id')
-                                
-                                # 채택 기록 저장
-                                record_content_adoption(
-                                    session_state['user_id'],
-                                    current_generate_id,
-                                    tone
-                                )
-                                
-                                # 복사 행동 로그 기록
-                                logger.info(f"ADOPT_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
-                                
-                                st.success("✅ 채택 완료! 텍스트를 선택한 후 **Ctrl+C**로 복사하세요.")
-                                st.rerun()
+                        if st.button(f"📝 채택", key=f"adopt_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
+                            # tone 변수 정의
+                            tone = content.get('tone', 'Unknown')
+                            current_generate_id = session_state.get('current_generate_id', 'temp_id')
+                            
+                            # 채택 기록 저장
+                            record_content_adoption(
+                                session_state['user_id'],
+                                current_generate_id,
+                                tone
+                            )
+                            
+                            # 채택 행동 로그 기록
+                            logger.info(f"ADOPT_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
+                            
+                            st.success("✅ 채택 완료! 텍스트를 선택하여 복사하세요.")
+                            st.rerun()
                 
                 with col2:
                     if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
