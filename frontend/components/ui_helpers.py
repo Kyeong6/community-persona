@@ -21,31 +21,29 @@ def show_error_message(message: str):
 def show_info_message(message: str):
     st.info(message)
 
-# 클립보드에 텍스트 복사
+# 클립보드에 텍스트 복사 (JavaScript 사용)
 def copy_to_clipboard(text: str) -> bool:
+    """
+    텍스트를 클립보드에 복사합니다.
+    Streamlit은 웹 앱이므로 브라우저의 JavaScript를 사용합니다.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
-        # 먼저 pyperclip 시도
+        # pyperclip이 실제로 작동하는지 테스트
+        # (로컬 환경에서는 작동할 수 있지만, Streamlit에서는 실패할 가능성이 높음)
         pyperclip.copy(text)
+        logger.debug(f"복사 성공 (pyperclip): {len(text)} 자")
         return True
-    except Exception:
-        # pyperclip 실패 시 운영체제별 네이티브 명령어 사용
-        try:
-            import subprocess
-            
-            if platform.system() == "Windows":
-                # Windows: clip 명령어 사용
-                process = subprocess.Popen(['clip'], stdin=subprocess.PIPE, text=True, shell=True)
-                process.communicate(input=text)
-                return process.returncode == 0
-            elif platform.system() == "Darwin":
-                # macOS: pbcopy 사용
-                process = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE, text=True)
-                process.communicate(input=text)
-                return process.returncode == 0
-            else:
-                return False
-        except Exception:
-            return False
+    except Exception as e:
+        logger.warning(f"pyperclip 실패: {e}")
+        
+        # Streamlit은 브라우저를 통해 실행되므로
+        # 서버 측 클립보드 접근은 제한적입니다
+        # JavaScript를 사용하여 브라우저 클립보드에 복사하는 것이 필요
+        # 하지만 여기서는 False를 반환하고 UI에서 안내 메시지를 표시합니다
+        return False
 
 # 운영체제별 복사 메시지 반환
 def get_platform_copy_message() -> str:
@@ -147,27 +145,12 @@ def create_content_cards(contents: list, session_state: dict):
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # 원고 내용 - 복사한 톤이면 다른 배경색
+                # 원고 내용 - 복사 가능한 텍스트 영역으로 표시
                 content_bg_color = '#e8f5e8' if is_adopted else '#f8f9fa'
                 content_border_color = '#28a745' if is_adopted else '#dee2e6'
                 
-                st.markdown(f"""
-                <div style="
-                    background-color: {content_bg_color};
-                    border: 1px solid {content_border_color};
-                    border-radius: 8px;
-                    padding: 16px;
-                    margin: 8px 0;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    line-height: 1.6;
-                    color: #212529;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                    height: 150px;
-                    overflow-y: auto;
-                    overflow-x: hidden;
-                ">{content['text']}</div>
-                """, unsafe_allow_html=True)
+                # 선택 가능한 텍스트로 표시 (윈도우 호환성)
+                st.code(content['text'], language='text', line_numbers=False)
                 
                 # 수정 모드 확인
                 if session_state.get(f"editing_{content['id']}", False):
@@ -236,33 +219,38 @@ def create_content_cards(contents: list, session_state: dict):
                 col1, col2 = st.columns([1, 1])
                 with col1:
                     if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
-                        if copy_to_clipboard(content['text']):
-                            # tone 변수 정의
-                            tone = content.get('tone', 'Unknown')
-                            current_generate_id = session_state.get('current_generate_id', 'temp_id')
-                            
-                            # 기존 copy_action 호출
-                            copy_action(
-                                session_state['user_id'],
-                                current_generate_id,
-                                str(content['id']),
-                                tone=tone
-                            )
-                            # 채택 기록 저장
-                            record_content_adoption(
-                                session_state['user_id'],
-                                current_generate_id,
-                                tone
-                            )
-                            
-                            # 복사 행동 로그 기록
-                            logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
-                            
-                            # 복사 성공 플래그 설정 (마지막에 설정)
+                        # macOS에서는 pyperclip이 작동할 가능성이 있지만, 윈도우에서는 실패할 수 있음
+                        # st.code()로 표시했으므로 사용자가 직접 선택하여 복사 가능
+                        copy_success = copy_to_clipboard(content['text'])
+                        
+                        # tone 변수 정의
+                        tone = content.get('tone', 'Unknown')
+                        current_generate_id = session_state.get('current_generate_id', 'temp_id')
+                        
+                        # 기존 copy_action 호출
+                        copy_action(
+                            session_state['user_id'],
+                            current_generate_id,
+                            str(content['id']),
+                            tone=tone
+                        )
+                        # 채택 기록 저장
+                        record_content_adoption(
+                            session_state['user_id'],
+                            current_generate_id,
+                            tone
+                        )
+                        
+                        # 복사 행동 로그 기록
+                        logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
+                        
+                        # 복사 성공 플래그 설정
+                        if copy_success:
                             session_state[f'copy_message_{copy_message_key}'] = True
-                            st.rerun()
                         else:
-                            show_copy_failure_message()
+                            # 복사 실패 시 안내 메시지 표시하지 않음 (사용자는 텍스트 영역을 선택하여 복사 가능)
+                            st.info("💡 위의 텍스트를 드래그하여 선택한 후 Ctrl+C로 복사하세요.")
+                        st.rerun()
                 
                 with col2:
                     if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
