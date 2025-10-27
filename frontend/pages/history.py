@@ -302,9 +302,13 @@ def show_history_page(user_id: str):
                             st.session_state.current_page = "main"  # 메인 페이지로 이동
                             st.rerun()
                     
-                    # 생성된 원고 6개 모두 표시
+                    # 생성된 원고 6개를 2x3 형태로 표시
                     if gen.get('generated_contents'):
                         st.markdown("### 📝 생성된 원고")
+                        
+                        # 2행 3열로 배치하기 위해 컬럼 생성
+                        cols = st.columns(3)
+                        
                         for j, content in enumerate(gen['generated_contents']):
                             tone = content.get('tone', f'톤 {j+1}')
                             text = content.get('text', '')
@@ -328,16 +332,20 @@ def show_history_page(user_id: str):
                             border_color = '#28a745' if is_adopted else '#667eea'
                             adopted_icon = ' ✅' if is_adopted else ''
                             
-                            st.markdown(f"""
-                            <div style="background-color: {bg_color}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid {border_color}; {'box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);' if is_adopted else ''}">
-                                <div style="font-weight: bold; color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem;">
-                                    {tone}{adopted_icon}
+                            # 2행 3열 배치: 0,1,2는 첫 번째 행, 3,4,5는 두 번째 행
+                            col_index = j % 3
+                            
+                            with cols[col_index]:
+                                st.markdown(f"""
+                                <div style="background-color: {bg_color}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid {border_color}; {'box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);' if is_adopted else ''} height: 200px; display: flex; flex-direction: column;">
+                                    <div style="font-weight: bold; color: #495057; margin-bottom: 0.5rem; font-size: 1.1rem; flex-shrink: 0;">
+                                        {tone}{adopted_icon}
+                                    </div>
+                                    <div style="color: #212529; line-height: 1.6; flex: 1; overflow-y: auto; padding-right: 0.5rem;">
+                                        {text}
+                                    </div>
                                 </div>
-                                <div style="color: #212529; line-height: 1.6;">
-                                    {text}
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
             
             # 페이지네이션 컨트롤
             if total_pages > 1:
