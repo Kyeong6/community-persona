@@ -237,40 +237,63 @@ def create_content_cards(contents: list, session_state: dict):
                     pass
                 
                 # 액션 버튼 - 붙여서 배치
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
-                        # tone 변수 정의
-                        tone = content.get('tone', 'Unknown')
-                        current_generate_id = session_state.get('current_generate_id', 'temp_id')
-                        
-                        # 기존 copy_action 호출
-                        copy_action(
-                            session_state['user_id'],
-                            current_generate_id,
-                            str(content['id']),
-                            tone=tone
-                        )
-                        # 채택 기록 저장
-                        record_content_adoption(
-                            session_state['user_id'],
-                            current_generate_id,
-                            tone
-                        )
-                        
-                        # 복사 행동 로그 기록
-                        logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
-                        
-                        # 안내 메시지
-                        st.success("✅ 복사 완료! 위의 텍스트를 선택한 후 **Ctrl+C**로 복사하세요.")
-                        st.rerun()
+                # 윈도우 환경 감지
+                import platform as platform_module
+                is_windows = platform_module.system() == "Windows"
                 
-                with col2:
-                    if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
-                        # 수정 시작 로그
-                        logger.info(f"EDIT_START - user_id: {session_state['user_id']}, content_id: {session_state.get('current_generate_id', 'temp_id')}, tone: {content.get('tone', 'Unknown')}")
-                        session_state[f"editing_{content['id']}"] = True
-                        st.rerun()
+                if not is_windows:
+                    # macOS/Linux: 복사 버튼 표시
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
+                            # 자동 복사 시도 (macOS/Linux에서만 작동)
+                            copy_success = copy_to_clipboard(content['text'])
+                            
+                            # tone 변수 정의
+                            tone = content.get('tone', 'Unknown')
+                            current_generate_id = session_state.get('current_generate_id', 'temp_id')
+                            
+                            # 기존 copy_action 호출
+                            copy_action(
+                                session_state['user_id'],
+                                current_generate_id,
+                                str(content['id']),
+                                tone=tone
+                            )
+                            # 채택 기록 저장
+                            record_content_adoption(
+                                session_state['user_id'],
+                                current_generate_id,
+                                tone
+                            )
+                            
+                            # 복사 행동 로그 기록
+                            logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
+                            
+                            if copy_success:
+                                st.success("✅ 복사 완료!")
+                            else:
+                                st.info("💡 텍스트를 선택한 후 **Cmd+C**로 복사하세요.")
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
+                            # 수정 시작 로그
+                            logger.info(f"EDIT_START - user_id: {session_state['user_id']}, content_id: {session_state.get('current_generate_id', 'temp_id')}, tone: {content.get('tone', 'Unknown')}")
+                            session_state[f"editing_{content['id']}"] = True
+                            st.rerun()
+                else:
+                    # 윈도우: 복사 버튼 없음, 안내만 표시
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        st.info("💡 텍스트를 선택한 후 **Ctrl+C**로 복사하세요")
+                    
+                    with col2:
+                        if st.button(f"✏️ 수정", key=f"edit_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
+                            # 수정 시작 로그
+                            logger.info(f"EDIT_START - user_id: {session_state['user_id']}, content_id: {session_state.get('current_generate_id', 'temp_id')}, tone: {content.get('tone', 'Unknown')}")
+                            session_state[f"editing_{content['id']}"] = True
+                            st.rerun()
                 
                 st.markdown("")  # 간격
 
