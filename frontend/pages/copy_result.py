@@ -17,7 +17,7 @@ def show_results_screen():
     """, unsafe_allow_html=True)
     
     # 사용 안내 문구
-    st.info("💡 **사용 방법**: 아래에 표시된 텍스트를 드래그하여 선택한 후 복사하세요!")
+    st.info("💡 **사용 방법**: 아래에 표시된 텍스트를 드래그하여 복사하세요!")
     
     # 결과 그리드
     create_content_cards(st.session_state.generated_contents, st.session_state)
