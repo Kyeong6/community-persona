@@ -154,22 +154,12 @@ def create_content_cards(contents: list, session_state: dict):
                             display_text = c.get('text', content['text'])
                             break
                     
-                    # 채택된 톤은 다른 배경색으로 표시 (선택 가능하게)
-                    if is_adopted:
-                        st.markdown(f"""
-                        <div style="background-color: {content_bg_color}; border: 2px solid {content_border_color}; border-radius: 8px; padding: 12px; margin: 8px 0; cursor: text;">
-                            <pre style="margin: 0; font-family: inherit; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.6; color: #212529; user-select: all;">{display_text}</pre>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.text_area(
-                            "", 
-                            value=display_text, 
-                            height=150, 
-                            key=f"content_{current_generate_id}_{content['id']}",
-                            disabled=False,
-                            label_visibility="collapsed"
-                        )
+                    # 모든 텍스트를 선택 가능한 형태로 표시
+                    st.markdown(f"""
+                    <div style="background-color: {content_bg_color}; border: 2px solid {content_border_color}; border-radius: 8px; padding: 12px; margin: 8px 0; cursor: text; max-height: 150px; overflow-y: auto;">
+                        <pre style="margin: 0; font-family: inherit; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.6; color: #212529; user-select: text;">{display_text}</pre>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # 수정 모드 확인
                 if session_state.get(f"editing_{content['id']}", False):
