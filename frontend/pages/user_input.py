@@ -212,6 +212,9 @@ def show_input_form():
                             st.session_state.current_generate_id = result.get("generate_id", "temp_id")
                             st.session_state.show_results = True
                             
+                            # community 정보를 세션에 저장
+                            st.session_state.selected_community = community
+                            
                             # 생성 행동 로그 기록
                             logger.info(f"GENERATE_ACTION - user_id: {st.session_state.user_id}, community: {community}, product_name: {product_name}, generation_type: viral_copy")
                             
