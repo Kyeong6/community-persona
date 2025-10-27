@@ -73,8 +73,6 @@ def get_user_history(user_id: str, limit: int = 10):
                 "feedback_type": feedback.get("feedback_type", "general")
             })
         
-        logger.info(f"[get_user_history] Retrieved history for user_id={user_id}: {len(generations)} generations, {len(feedbacks)} feedbacks")
-        
         return history_data
         
     except Exception as e:

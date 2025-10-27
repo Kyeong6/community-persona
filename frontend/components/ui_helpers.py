@@ -2,7 +2,7 @@ import streamlit as st
 import pyperclip
 import platform
 
-from services import copy_action
+from services import copy_action, get_user_content_history
 from database.crud import record_content_adoption, update_content_text, get_content_adopted_tones
 from utils.get_logger import get_logger
 
@@ -50,24 +50,45 @@ def copy_to_clipboard(text: str) -> bool:
 # 운영체제별 복사 메시지 반환
 def get_platform_copy_message() -> str:
     if platform.system() == "Darwin":  # macOS
-        return "✅ 원고가 클립보드에 복사되었습니다! \n**Cmd+V**로 붙여넣기하세요."
+        return "✅ 원고가 클립보드에 복사되었습니다! \nCmd+V로 붙여넣기하세요."
     elif platform.system() == "Windows":  # Windows
-        return "✅ 원고가 클립보드에 복사되었습니다! \n**Ctrl+V**로 붙여넣기하세요."
+        return "✅ 원고가 클립보드에 복사되었습니다! \nCtrl+V로 붙여넣기하세요."
     else:  # 기타 (지원하지 않는 OS)
         return "✅ 원고가 클립보드에 복사되었습니다!"
 
-# 복사 성공 메시지 표시
-def show_copy_success_message():
-    st.success(get_platform_copy_message())
+# 복사 성공 메시지 표시 (닫기 버튼 포함)
+def show_copy_success_message(key: str):
+    """복사 성공 메시지를 표시하고 닫기 버튼을 제공합니다."""
+    message = get_platform_copy_message()
+    # \n을 <br>로 변환하여 HTML에서 줄바꿈이 제대로 표시되도록 함
+    message_html = message.replace('\n', '<br>')
+    
+    # 메시지와 닫기 버튼을 같은 행에 배치
+    col_msg, col_btn = st.columns([4, 1])
+    
+    with col_msg:
+        # 배경색이 있는 컨테이너로 표시
+        st.markdown(f"""
+        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 12px; color: #155724;">
+            {message_html}
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col_btn:
+        # 닫기 버튼을 세로 중앙에 배치
+        st.markdown("<br>", unsafe_allow_html=True)  # 간격 맞추기
+        if st.button("✖️ 닫기", key=f"close_copy_{key}", use_container_width=True):
+            st.session_state[f'copy_message_{key}'] = False
+            st.rerun()
 
 # 복사 실패 메시지 표시
 def show_copy_failure_message():
     st.error("❌ 클립보드 복사에 실패했습니다. 텍스트를 수동으로 복사해주세요.")
     
     if platform.system() == "Darwin":  # macOS
-        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 **Cmd+C**로 복사하세요.")
+        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 Cmd+C로 복사하세요.")
     elif platform.system() == "Windows":  # Windows
-        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 **Ctrl+C**로 복사하세요.")
+        st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 Ctrl+C로 복사하세요.")
     else:
         st.info("💡 텍스트를 마우스로 드래그하여 선택한 후 복사하세요.")
 
@@ -206,15 +227,16 @@ def create_content_cards(contents: list, session_state: dict):
                     # 원고 내용은 이미 위에서 표시됨 (복사한 톤에 따라 다른 색상)
                     pass
                 
+                # 복사 메시지 표시 (조건부)
+                copy_message_key = f"{session_state.get('current_generate_id', 'default')}_{content['id']}"
+                if session_state.get(f'copy_message_{copy_message_key}', False):
+                    show_copy_success_message(copy_message_key)
+                
                 # 액션 버튼 - 붙여서 배치
                 col1, col2 = st.columns([1, 1])
                 with col1:
                     if st.button(f"📋 복사", key=f"copy_{session_state.get('current_generate_id', 'default')}_{content['id']}", use_container_width=True):
                         if copy_to_clipboard(content['text']):
-                            show_copy_success_message()
-                            
-                            # 복사한 톤 정보 표시는 제거 (히스토리에서만 표시)
-                            
                             # tone 변수 정의
                             tone = content.get('tone', 'Unknown')
                             current_generate_id = session_state.get('current_generate_id', 'temp_id')
@@ -235,6 +257,10 @@ def create_content_cards(contents: list, session_state: dict):
                             
                             # 복사 행동 로그 기록
                             logger.info(f"COPY_ACTION - user_id: {session_state['user_id']}, content_id: {current_generate_id}, tone: {tone}, community: {session_state.get('selected_community')}")
+                            
+                            # 복사 성공 플래그 설정 (마지막에 설정)
+                            session_state[f'copy_message_{copy_message_key}'] = True
+                            st.rerun()
                         else:
                             show_copy_failure_message()
                 
