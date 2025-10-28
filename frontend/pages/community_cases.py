@@ -107,7 +107,7 @@ def show_community_tab(df, channel, display_name):
     category_options = ["전체"] + sorted(community_data['category'].unique().tolist())
     
     # 필터링 UI
-    st.markdown(f"### {display_name}")
+    st.markdown(f"### {display_name} 트렌드 모니터")
     
     # 필터링 컨트롤
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
