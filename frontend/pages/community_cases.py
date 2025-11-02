@@ -13,13 +13,15 @@ def load_community_data():
         # CSV 파일 로드
         df = pd.read_csv('community_data.csv')
         
-        # 데이터 정리
-        df['view_cnt'] = pd.to_numeric(df['view_cnt'], errors='coerce').fillna(0)
-        df['like_cnt'] = pd.to_numeric(df['like_cnt'], errors='coerce').fillna(0)
-        df['comment_cnt'] = pd.to_numeric(df['comment_cnt'], errors='coerce').fillna(0)
+        # 데이터 정리 (int 형으로 변환)
+        df['view_cnt'] = pd.to_numeric(df['view_cnt'], errors='coerce').fillna(0).astype(int)
+        df['like_cnt'] = pd.to_numeric(df['like_cnt'], errors='coerce').fillna(0).astype(int)
+        df['comment_cnt'] = pd.to_numeric(df['comment_cnt'], errors='coerce').fillna(0).astype(int)
         
-        # 날짜 컬럼 변환 및 주차 계산
-        df['created_at'] = pd.to_datetime(df['created_at'])
+        # 날짜 컬럼 변환 및 주차 계산 (여러 형식 지원)
+        df['created_at'] = pd.to_datetime(df['created_at'], format='mixed', errors='coerce')
+        # 날짜 변환이 실패한 행 제거 (NaT인 경우)
+        df = df.dropna(subset=['created_at'])
         df['week'] = df['created_at'].apply(get_week_number)
         
         # 종합 지표 계산 (가중 평균)
@@ -38,21 +40,27 @@ def load_community_data():
 def get_week_number(date):
     """날짜를 기반으로 주차를 계산합니다."""
     try:
-        # 10월 13일을 기준으로 주차 계산
+        # 10월 주차 계산 (자동 계산)
+        # 10월 5주차: 10월 26일 ~ 11월 2일 (11월 1일, 2일 포함)
         oct_13 = datetime(2025, 10, 13)
+        oct_20 = datetime(2025, 10, 20)
+        oct_26 = datetime(2025, 10, 26)
+        nov_2_end = datetime(2025, 11, 2, 23, 59, 59)  # 11월 2일 끝까지
         
         if date < oct_13:
             return "10월 2주차 이전"
-        elif oct_13 <= date < datetime(2025, 10, 20):
+        elif oct_13 <= date < oct_20:
             return "10월 3주차"
-        elif datetime(2025, 10, 20) <= date < datetime(2025, 10, 27):
+        elif oct_20 <= date < oct_26:
             return "10월 4주차"
+        elif oct_26 <= date <= nov_2_end:
+            return "10월 5주차"
         else:
-            return "10월 5주차 이후"
+            return "11월 이후"
     except:
         return "알 수 없음"
 
-def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=100, week_filter=None, category_filter=None):
+def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=100, week_filter=None, category_filter=None, own_company_filter=None):
     """커뮤니티별 상위 사례를 반환합니다."""
     community_data = df[df['channel'] == community].copy()
     
@@ -66,6 +74,13 @@ def get_top_cases_by_community(df, community, sort_by='composite_score', top_n=1
     # 카테고리 필터링
     if category_filter and category_filter != "전체":
         community_data = community_data[community_data['category'] == category_filter]
+    
+    # 회사 필터링
+    if own_company_filter and own_company_filter != "전체":
+        if own_company_filter == "롯데on":
+            community_data = community_data[community_data['own_company'] == 1]
+        elif own_company_filter == "타회사":
+            community_data = community_data[community_data['own_company'] == 0]
     
     if community_data.empty:
         return pd.DataFrame()
@@ -106,11 +121,14 @@ def show_community_tab(df, channel, display_name):
     # 카테고리 옵션
     category_options = ["전체"] + sorted(community_data['category'].unique().tolist())
     
+    # 회사 옵션
+    company_options = ["전체", "롯데on", "타회사"]
+    
     # 필터링 UI
     st.markdown(f"### {display_name} 트렌드 모니터")
     
     # 필터링 컨트롤
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
     
     with col1:
         week_filter = st.selectbox(
@@ -137,18 +155,31 @@ def show_community_tab(df, channel, display_name):
         )
     
     with col4:
+        own_company_filter = st.selectbox(
+            "🏢 회사:",
+            options=company_options,
+            index=0,
+            key=f"company_{channel}"
+        )
+    
+    with col5:
         # 필터링된 데이터 개수 표시
         filtered_data = community_data.copy()
         if week_filter != "전체":
             filtered_data = filtered_data[filtered_data['week'] == week_filter]
         if category_filter != "전체":
             filtered_data = filtered_data[filtered_data['category'] == category_filter]
+        if own_company_filter != "전체":
+            if own_company_filter == "롯데on":
+                filtered_data = filtered_data[filtered_data['own_company'] == 1]
+            elif own_company_filter == "타회사":
+                filtered_data = filtered_data[filtered_data['own_company'] == 0]
         
         st.metric("📈 총 사례 수", f"{len(filtered_data)}개")
     
     # 선택된 정렬 기준으로 데이터 가져오기 (최대 100개)
     sort_key = sort_options[sort_by]
-    top_cases = get_top_cases_by_community(df, channel, sort_key, 100, week_filter, category_filter)
+    top_cases = get_top_cases_by_community(df, channel, sort_key, 100, week_filter, category_filter, own_company_filter)
     
     if top_cases.empty:
         # 필터링 조건에 따른 메시지
@@ -236,14 +267,21 @@ def show_community_tab(df, channel, display_name):
             # 제목과 내용
             st.markdown(f"**제목:** {case['title']}")
             
-            # 카테고리와 주차 정보를 같은 행에 표시
-            col_info1, col_info2 = st.columns(2)
+            # 카테고리, 주차, 회사 정보를 같은 행에 표시
+            col_info1, col_info2, col_info3 = st.columns(3)
             with col_info1:
                 st.markdown(f"**카테고리:** {case['category']}")
             with col_info2:
                 st.markdown(f"**주차:** {case['week']}")
+            with col_info3:
+                company_name = "롯데on" if case.get('own_company', 0) == 1 else "타회사"
+                st.markdown(f"**회사:** {company_name}")
             
             st.markdown(f"**작성일:** {case['created_at'].strftime('%Y-%m-%d %H:%M')}")
+            
+            # URL 정보 표시 (있는 경우)
+            if pd.notna(case.get('url')) and str(case.get('url')).strip():
+                st.markdown(f"**🔗 원문 링크:** [바로가기]({case['url']})")
             
             # 전체 내용 표시 (미리보기 제거하고 전체 내용을 바로 표시)
             st.markdown("**내용:**")
